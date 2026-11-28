@@ -1380,7 +1380,7 @@ Formalized in \texttt{SecondMoment}.
         SpinGlasses.exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp,
         SpinGlasses.exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments}
   \leanok
-  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
+  \uses{lem:sg-tal:st-aux-cavity, thm:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
 \talsource{Eqs.~(3.97)--(3.104)}
 Fix $\kappa_0>0$, $h_0,D,Q,R,R_{\mathrm{diff}}\ge0$. Under the standing bounds $\kappa\ge\kappa_0$,
 $|h|\le h_0$, $t,v\in[0,1]$, $0\le q\le\rho\le Q$, $\bar r\le r\le R$, $r-\bar r\le R_{\mathrm{diff}}$,
@@ -1408,7 +1408,7 @@ such that for any replicas $a,b$ and $\Delta=|R_{a,b}-(\rho\,\mathbf 1_{a=b}+q\,
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
+  \uses{lem:sg-tal:st-aux-cavity, thm:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
 \emph{Step 0 (two descriptions of the disorder).} The map sending (disorder with $M+1$ rows, $z$) to
 $(\text{disorder with the first }M\text{ rows},\ (g_{M+1,\cdot},z))$ preserves the Gaussian laws, which moves
 averages between the two descriptions. For $1/K<\kappa$ the auxiliary state is a probability measure with
@@ -1780,21 +1780,20 @@ It is an open problem in the book and has no Lean statement.
 \end{remark}
 
 \begin{theorem}[Lemma~3.2.11 at rate $(N+1)^{-1/2}$]\label{thm:sg-tal:st-lemma-3211}
-  \lean{SpinGlasses.exists_abs_shcherbinaTirozziCavity_selfOverlap_sub_le,
-        SpinGlasses.exists_abs_shcherbinaTirozziCavity_overlap_sub_le}
-  \leanok
   \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
         thm:sg-tal:st-cavity-overlaps}
 \talsource{Lemma~3.2.11, Eq.~(3.112)}
-In the setting of Theorem~\ref{thm:sg-tal:st-cavity-overlaps}, let moreover $N+1\ge4$ and let $u$ be twice
-differentiable with $|u''|\le D$. Put $\rho_t=\nu_t(R_{1,1})$ and $q_t=\nu_t(R_{1,2})$. There is $K$, depending
-only on $\kappa_0,h_0,D,R,R_{\mathrm{diff}}$, such that for all $t\in[0,1]$
+Keep the assumptions of Theorem~\ref{thm:sg-tal:st-cavity-overlaps}.
+Suppose moreover that $N+1\ge4$, and that $u$ is twice differentiable with $|u''|\le D$. Define
+\[
+\rho_t=\nu_t(R_{1,1}),\qquad q_t=\nu_t(R_{1,2}).
+\]
+There is $K$, depending only on $\kappa_0,h_0,D,R,R_{\mathrm{diff}}$, such that for all $t\in[0,1]$
 \[
 |\rho_t-\rho_1|\le\frac K{\sqrt{N+1}},\qquad|q_t-q_1|\le\frac K{\sqrt{N+1}} .
 \]
 \end{theorem}
 \begin{proof}
-  \leanok
   \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
         thm:sg-tal:st-cavity-overlaps}
 Write $G_t$ for the cavity Gibbs measure, $\varepsilon=\sigma_{N+1}$, $n$ for the number of replicas, and
@@ -1839,12 +1838,9 @@ $A^2=K/(N+1)$, so that for all $s\in(0,1)$
 \]
 Now apply the mean value theorem between $t$ and $1$, using the continuity of $s\mapsto\nu_s(f)$ on $[0,1]$
 (Lemma~\ref{lem:sg-tal:st-cavity-moments}).
-Formalized in \texttt{RSAccuracy}.
 \end{proof}
 
 \begin{theorem}[Proposition~3.2.12: the replica-symmetric equations]\label{thm:sg-tal:st-rs-accuracy}
-  \lean{SpinGlasses.exists_shcherbinaTirozzi_rsEquations_accuracy}
-  \leanok
   \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
         thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
 \talsource{Proposition~3.2.12, Eq.~(3.115), combined with Proposition~3.2.4}
@@ -1864,7 +1860,6 @@ the scale $\sqrt{\rho-q}$ (Lemma~\ref{lem:sg-tal:st-rs-parameters}) and $a=2\kap
 \]
 \end{theorem}
 \begin{proof}
-  \leanok
   \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
         thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
 Use the cavity path with these $r,\bar r$, and write $\varepsilon=\sigma_{N+1}$.
@@ -1905,7 +1900,6 @@ Theorem~\ref{thm:sg-tal:st-lemma-3211} bounds the second by $K/(N+1)$. Hence $E(
 \[
 |\nu_1(f)-\nu_0(f)|\le\frac{K_1K_2}{\sqrt{N+1}} .
 \]
-Formalized in \texttt{RSAccuracy}.
 \end{proof}
 
 \begin{remark}[Hypotheses and differences for Lemma~3.2.11 and Proposition~3.2.12]
@@ -1921,6 +1915,11 @@ not depend on $r,\bar r$. Proposition~\ref{prop:sg-tal:st-last-spin-deriv} and
 Theorem~\ref{thm:sg-tal:st-rs-accuracy} use all four derivatives. No bound on $q,\rho,r,\bar r$ is assumed in
 Theorem~\ref{thm:sg-tal:st-rs-accuracy}: they are proved. The conclusion is stated directly as the accuracy of
 the equations (3.69), (3.76) and (3.77), which by Proposition~3.2.4 is the content of (3.115).
+
+\emph{Formalization status.} Lean versions of Theorem~\ref{thm:sg-tal:st-lemma-3211} and
+Theorem~\ref{thm:sg-tal:st-rs-accuracy} are written in the file \texttt{RSAccuracy}, but that file does not yet
+compile: the check fails inside the proof of Theorem~\ref{thm:sg-tal:st-rs-accuracy}. Neither theorem is
+therefore marked as formalized.
 
 \emph{Not formalized.} Lemma~3.2.11 is printed with the rate $K/N$; only the rate $K/\sqrt{N+1}$, which the
 book's proof obtains first and which suffices for Proposition~3.2.12, is proved. Theorem~3.2.14 (the rate $K/N$
