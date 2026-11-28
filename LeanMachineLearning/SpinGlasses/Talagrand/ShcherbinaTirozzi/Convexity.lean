@@ -229,12 +229,12 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
     Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop : Measurable fun σ : E => ⟪v k, σ⟫)
   have hU0 : ∀ σ, U σ ≤ 0 := fun σ => Finset.sum_nonpos fun k _ => hu0 _
   have hk' : ∀ k, Integrable (fun z => u ⟪v k, c • z⟫) (stdGaussian E) ∧
-      -(D + D * c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k =>
-    integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner
-      (hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)) (fun _ => hu0 _)
+      ‖∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E‖ ≤ D + D * c * ‖v k‖ := fun k =>
+    integrable_and_norm_integral_stdGaussian_le_of_le_abs_inner
+      (hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)).aestronglyMeasurable
       (mul_nonneg hD0 hc0.le) fun z => by
+        rw [Function.comp_apply, Real.norm_eq_abs, abs_of_nonpos (hu0 _), neg_le]
         refine le_trans (le_of_eq ?_) (hD _)
-        dsimp only
         rw [real_inner_smul_right, abs_mul, abs_of_pos hc0]
         ring
   have hui := fun k => (hk' k).1
@@ -243,7 +243,7 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
   have hlow : -(∫ z : E, U (c • z) ∂stdGaussian E) ≤
       D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2)) := by
     have hk : ∀ k, -D * (1 + c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k =>
-      le_of_eq_of_le (by ring) (hk' k).2
+      le_of_eq_of_le (by ring) (neg_le_of_abs_le (hk' k).2)
     have hnorm : ∀ k, ‖v k‖ ^ 2 = (N : ℝ)⁻¹ * ∑ i, g k i ^ 2 := fun k => by
       rw [EuclideanSpace.real_norm_sq_eq, Finset.mul_sum]
       exact Finset.sum_congr rfl fun i _ => by

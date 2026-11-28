@@ -68,6 +68,37 @@ theorem integral_pi_tilted_prod_gaussian_zero_observable {μ : Measure α} [Sigm
     E (fun ξ : ℝ => u (Real.sqrt q * z + c * ξ)) f (fun _ => 1)
   simpa using h
 
+/-- **Integrating out the fresh Gaussians (model-free core of the smoothed Hamiltonian (3.99)):**
+if the perturbation is `u (s x + c ξ)` with `u ≤ 0` and `ξ ~ 𝒩(0, 1)` fresh for each replica, the
+replica average of an observable of the old configurations is its average under the energy
+`E x + log 𝔼_ξ exp u (s x + c ξ)`. -/
+theorem integral_pi_tilted_prod_gaussianReal_eq_smoothed {μ : Measure α} [SigmaFinite μ]
+    {E s : α → ℝ} {u : ℝ → ℝ} (hu : Measurable u) (hu0 : ∀ x, u x ≤ 0) (hs : Measurable s)
+    (hE : Integrable (fun x => Real.exp (E x)) μ) (c : ℝ) {f : (R → α) → ℝ} (hf : Measurable f) :
+    ∫ σ : R → α × ℝ, f (fun l => (σ l).1)
+        ∂(Measure.pi fun _ : R => (μ.prod (gaussianReal 0 1)).tilted
+          fun p : α × ℝ => E p.1 + u (s p.1 + c * p.2)) =
+      ∫ a : R → α, f a ∂(Measure.pi fun _ : R => μ.tilted fun x =>
+        E x + Real.log (∫ ξ, Real.exp (u (s x + c * ξ)) ∂(gaussianReal 0 1))) := by
+  have hum : Measurable fun p : α × ℝ => Real.exp (u (s p.1 + c * p.2)) :=
+    (hu.comp ((hs.comp measurable_fst).add (measurable_snd.const_mul c))).exp
+  have hEi : Integrable (fun p : α × ℝ => Real.exp (E p.1 + u (s p.1 + c * p.2)))
+      (μ.prod (gaussianReal 0 1)) := by
+    have h1 := hE.comp_fst (gaussianReal 0 1)
+    simp_rw [Real.exp_add]
+    refine h1.mono' (h1.aestronglyMeasurable.mul hum.aestronglyMeasurable)
+      (ae_of_all _ fun p => ?_)
+    rw [Real.norm_of_nonneg (mul_pos (Real.exp_pos _) (Real.exp_pos _)).le]
+    exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (hu0 _))
+  have hfib : ∀ x : α,
+      Real.log (∫ ξ, Real.exp (E x + u (s x + c * ξ)) ∂(gaussianReal 0 1)) =
+        E x + Real.log (∫ ξ, Real.exp (u (s x + c * ξ)) ∂(gaussianReal 0 1)) := fun x => by
+    simp_rw [Real.exp_add]
+    rw [integral_const_mul, Real.log_mul (Real.exp_pos _).ne'
+      (integral_exp_comp_add_gaussianReal_pos hu hu0 _ _).ne', Real.log_exp]
+  rw [integral_pi_tilted_prod_fst hEi hf]
+  simp_rw [hfib]
+
 /-- **General `v = 0` decoupling for a pair of derivatives (model-free core of Eq. (3.93)):** for
 distinct replicas `l₁ ≠ l₂`, the extended replica average of `u'(θ^{l₁}) u'(θ^{l₂}) f` at `v = 0`
 is `⟨f⟩_E` times `(𝔼_ξ [u'(θ) e^{u(θ)}] / 𝔼_ξ [e^{u(θ)}])²`. -/
@@ -513,40 +544,15 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ
           E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
             Real.sqrt (1 - v) * Real.sqrt q * z)) := by
   intro E_old S_v u_v
-  have hEold_i : Integrable (fun σ : ℝ^(N + 1) => Real.exp (E_old σ)) volume :=
-    integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq_t hu hu0 _ g₀
-  have hEm : Measurable fun p : ℝ^(N + 1) × ℝ => E_old p.1 + u (S_v p) := by
-    have hold : Measurable E_old := (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r
-      rBar t y hu (fun j => g j.castSucc) g₀).neg
-    have h1 : Measurable fun p : ℝ^(N + 1) × ℝ => E_old p.1 := hold.comp measurable_fst
-    have hσ : ∀ i : Fin (N + 1), Measurable fun p : ℝ^(N + 1) × ℝ => p.1 i := fun i =>
-      ((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).comp measurable_fst
-    have hf1 : Measurable fun p : ℝ^(N + 1) × ℝ => cfield⟨t, g, Fin.last M, p.1⟩ :=
-      (((Finset.measurable_sum _ fun i _ => (hσ i.castSucc).const_mul _).add
-        (((hσ (Fin.last N)).const_mul _).const_mul _)).const_mul _)
-    exact h1.add (hu.comp ((hf1.const_mul _).add
-      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)))
-  have hEi : Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (E_old p.1 + u (S_v p)))
-      ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) := by
-    refine (hEold_i.comp_fst (gaussianReal 0 1)).mono' hEm.exp.aestronglyMeasurable
-      (ae_of_all _ fun p => ?_)
-    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_add]
-    exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (hu0 _))
-  rw [integral_pi_tilted_prod_fst hEi hf]
-  have hfib : ∀ σ : ℝ^(N + 1),
-      Real.log (∫ ξ, Real.exp (E_old σ + u (S_v (σ, ξ))) ∂(gaussianReal 0 1)) =
-        E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
-          Real.sqrt (1 - v) * Real.sqrt q * z) := fun σ => by
-    have h1 : ∀ ξ : ℝ, Real.exp (E_old σ + u (S_v (σ, ξ))) =
-        Real.exp (E_old σ) * Real.exp (u ((Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
-          Real.sqrt (1 - v) * Real.sqrt q * z) +
-          Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ)) := fun ξ => by
-      rw [Real.exp_add]
-      congr 2; dsimp only [S_v]; ring_nf
-    simp_rw [h1]
-    rw [integral_const_mul, Real.log_mul (Real.exp_pos _).ne'
-      (integral_exp_comp_add_gaussianReal_pos hu hu0 _ _).ne', Real.log_exp]
-  simp_rw [hfib]
+  have hs : Measurable fun σ : ℝ^(N + 1) => Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+      Real.sqrt (1 - v) * Real.sqrt q * z := Continuous.measurable (by fun_prop)
+  have hS : ∀ p : ℝ^(N + 1) × ℝ, S_v p =
+      (Real.sqrt v * cfield⟨t, g, Fin.last M, p.1⟩ + Real.sqrt (1 - v) * Real.sqrt q * z) +
+        (Real.sqrt (1 - v) * Real.sqrt (ρ - q)) * p.2 := fun p => by
+    dsimp only [S_v]; ring
+  simp only [hS]
+  exact integral_pi_tilted_prod_gaussianReal_eq_smoothed hu hu0 hs
+    (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq_t hu hu0 _ g₀) _ hf
 
 /-- **One-replica form of `integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed`:** the average of an
 old-configuration observable under the one-replica auxiliary cavity state is its average under the

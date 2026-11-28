@@ -168,27 +168,23 @@ theorem integral_abs_inner_stdGaussian_le (a : E) :
   simp only [Real.norm_eq_abs, sq_abs, h2] at h
   exact le_of_sq_le_sq h (norm_nonneg a)
 
-/-- A nonpositive function with `-(A + B |⟪a, z⟫|) ≤ f z` is integrable under the standard
-Gaussian, with `-(A + B ‖a‖) ≤ ∫ f`. -/
-theorem integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner {f : E → ℝ} (hf : Measurable f)
-    (hf0 : ∀ z, f z ≤ 0) {a : E} {A B : ℝ} (hB : 0 ≤ B)
-    (hlow : ∀ z, -(A + B * |⟪a, z⟫|) ≤ f z) :
-    Integrable f (stdGaussian E) ∧ -(A + B * ‖a‖) ≤ ∫ z, f z ∂stdGaussian E := by
+/-- A function with `‖f z‖ ≤ A + B |⟪a, z⟫|` is integrable under the standard Gaussian, with
+`‖∫ f‖ ≤ A + B ‖a‖`. -/
+theorem integrable_and_norm_integral_stdGaussian_le_of_le_abs_inner {G : Type*}
+    [NormedAddCommGroup G] [NormedSpace ℝ G] {f : E → G}
+    (hf : AEStronglyMeasurable f (stdGaussian E)) {a : E} {A B : ℝ} (hB : 0 ≤ B)
+    (hbd : ∀ z, ‖f z‖ ≤ A + B * |⟪a, z⟫|) :
+    Integrable f (stdGaussian E) ∧ ‖∫ z, f z ∂stdGaussian E‖ ≤ A + B * ‖a‖ := by
   have habs : Integrable (fun z => |⟪a, z⟫|) (stdGaussian E) :=
     ((IsGaussian.memLp_dual (stdGaussian E) (innerSL ℝ a) 1 (by norm_num)).integrable
       le_rfl).abs
   have hmaj : Integrable (fun z => A + B * |⟪a, z⟫|) (stdGaussian E) :=
     (integrable_const A).add (habs.const_mul B)
-  have hfi : Integrable f (stdGaussian E) :=
-    hmaj.mono' hf.aestronglyMeasurable (ae_of_all _ fun z => by
-      rw [Real.norm_eq_abs, abs_of_nonpos (hf0 z)]
-      exact neg_le.1 (hlow z))
-  refine ⟨hfi, le_trans ?_ (integral_mono hmaj.neg hfi hlow)⟩
-  simp only [Pi.neg_apply]
-  rw [integral_neg, integral_add (integrable_const A) (habs.const_mul B), integral_const,
-    probReal_univ, one_smul, integral_const_mul]
-  exact neg_le_neg (add_le_add le_rfl
-    (mul_le_mul_of_nonneg_left (integral_abs_inner_stdGaussian_le a) hB))
+  refine ⟨hmaj.mono' hf (ae_of_all _ hbd),
+    (norm_integral_le_of_norm_le hmaj (ae_of_all _ hbd)).trans ?_⟩
+  rw [integral_add (integrable_const A) (habs.const_mul B), integral_const, probReal_univ,
+    one_smul, integral_const_mul]
+  exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (integral_abs_inner_stdGaussian_le a) hB)
 
 /-- **Conditioning a standard Gaussian on a measurable set** is the probability measure with
 density proportional to `exp (-‖v‖² / 2)` on that set. -/

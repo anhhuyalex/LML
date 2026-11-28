@@ -473,7 +473,7 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
     funext σ
     have ha_in : ⟪a_vec, σ⟫ = (h * ∑ i : Fin (N + 1), w.1.2.2 i * σ i) +
         σ (Fin.last N) * (Real.sqrt (1 - t) * w.1.1) :=
-      inner_toLp_shcherbinaTirozziCavity_drift _ _ _ _
+      EuclideanSpace.inner_toLp_mul_add_ite _ _ _ _ _
     dsimp only [E_old, shcherbinaTirozziCavityHamiltonian, U, u_k]
     rw [ha_in, Fin.sum_univ_castSucc (n := M)]
     simp only [Fin.snoc_castSucc, Fin.snoc_last, hv_inner]
@@ -510,14 +510,15 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
       -(D_sm * ((1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)) +
         s_κ * ‖v_vec k‖)) ≤ ∫ z₀, u_k k ⟪v_vec k, s_κ • z₀⟫ ∂(stdGaussian (ℝ^(N + 1))) := by
     intro k
-    have h := integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner
+    have h := integrable_and_norm_integral_stdGaussian_le_of_le_abs_inner
       (f := fun z₀ : ℝ^(N + 1) => u_k k ⟪v_vec k, s_κ • z₀⟫) (a := v_vec k)
       (A := D_sm * (1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)))
       (B := D_sm * s_κ)
-      ((huk_m k).comp (by fun_prop : Measurable fun z₀ : ℝ^(N + 1) => ⟪v_vec k, s_κ • z₀⟫))
-      (fun _ => huk_0 k _) (mul_nonneg hDsm0 hsκ0.le)
-      (fun z₀ => le_of_eq_of_le (by ring) (hk_low k z₀))
-    exact ⟨h.1, le_of_eq_of_le (by ring) h.2⟩
+      ((huk_m k).comp (by fun_prop : Measurable fun z₀ : ℝ^(N + 1) =>
+        ⟪v_vec k, s_κ • z₀⟫)).aestronglyMeasurable (mul_nonneg hDsm0 hsκ0.le) fun z₀ => by
+        rw [Function.comp_apply, Real.norm_eq_abs, abs_of_nonpos (huk_0 k _), neg_le]
+        exact le_of_eq_of_le (by ring) (hk_low k z₀)
+    exact ⟨h.1, le_of_eq_of_le (by ring) (neg_le_of_abs_le h.2)⟩
   -- Integrability and expectation of the last-spin quadratic penalty under `stdGaussian (ℝ^(N+1))`
   have hlast_z : Integrable (fun z₀ : ℝ^(N + 1) => (s_κ • z₀) (Fin.last N) ^ 2)
         (stdGaussian (ℝ^(N + 1))) ∧

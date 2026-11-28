@@ -34,6 +34,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Deriv
+public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.EuclideanDrift
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed

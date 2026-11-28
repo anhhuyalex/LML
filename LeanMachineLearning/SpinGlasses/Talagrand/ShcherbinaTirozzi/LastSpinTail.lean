@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.EuclideanDrift
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
 public import LeanMachineLearning.ForMathlib.Probability.Moments.LogConcaveConcentration
@@ -166,20 +167,6 @@ theorem measurable_shcherbinaTirozziCavityHamiltonian_apply (κ h r rBar t y : �
       shcherbinaTirozziCavityHamiltonian κ h r rBar t y u g g₀ σ :=
   measurable_indexed_cavity_apply κ h r rBar t y (fun _ => hu) g g₀
 
-/-- The linear drift `h g₀ + c e_N` of the cavity system, paired with a configuration. -/
-theorem inner_toLp_shcherbinaTirozziCavity_drift (h c : ℝ) (g₀ : Fin (N + 1) → ℝ)
-    (σ : ℝ^(N + 1)) :
-    ⟪WithLp.toLp 2 (fun i => h * g₀ i + if i = Fin.last N then c else 0), σ⟫ =
-      h * (∑ i, g₀ i * σ i) + σ (Fin.last N) * c := by
-  have h1 : ⟪WithLp.toLp 2 (fun i => h * g₀ i + if i = Fin.last N then c else 0), σ⟫ =
-      ∑ i, (h * g₀ i + if i = Fin.last N then c else 0) * σ i := by
-    rw [PiLp.inner_apply]
-    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
-  simp only [h1, add_mul, Finset.sum_add_distrib, ite_mul, zero_mul, Finset.sum_ite_eq',
-    Finset.mem_univ, ite_true]
-  rw [mul_comm (σ (Fin.last N)), Finset.mul_sum]
-  exact congrArg (· + _) (Finset.sum_congr rfl fun i _ => mul_assoc _ _ _)
-
 private theorem integrable_exp_neg_indexed_cavity {κ h r rBar t y : ℝ} (hκ : 0 < κ)
     (hq : 0 ≤ (1 - t) * (r - rBar)) {u_k : Fin M → ℝ → ℝ} (hu : ∀ k, Measurable (u_k k))
     (hu0 : ∀ k x, u_k k x ≤ 0) (g : Fin M → Fin (N + 1) → ℝ) (g₀ : Fin (N + 1) → ℝ) :
@@ -209,7 +196,7 @@ private theorem integrable_exp_neg_indexed_cavity {κ h r rBar t y : ℝ} (hκ :
   refine (integrable_exp_add_neg_mul_sq_norm_add_inner hUm hU0 hκ
     (WithLp.toLp 2 fun i => h * g₀ i + if i = Fin.last N then Real.sqrt (1 - t) * y else 0)).congr
     (ae_of_all _ fun σ => congrArg Real.exp ?_)
-  rw [hU, inner_toLp_shcherbinaTirozziCavity_drift]
+  rw [hU, EuclideanSpace.inner_toLp_mul_add_ite]
   ring
 
 /-- For `κ > 0`, `u ≤ 0` and `(1 - t) (r - r̄) ≥ 0` the cavity Boltzmann weight is
