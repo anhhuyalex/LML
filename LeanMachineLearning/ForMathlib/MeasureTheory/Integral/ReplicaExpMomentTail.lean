@@ -203,8 +203,8 @@ theorem integral_integral_pi_tail_and_pow_le_of_exp_moment {Ω α R : Type*} [Me
   ring
 
 /-- The bounds of `integral_integral_pi_tail_and_pow_le_of_exp_moment` for the centred overlap
-`|⟪X (σ a), X (σ b)⟫ / n - m|` of two replicas, with `|m| ≤ Q`, from the exponential moment
-`𝔼 ∫ exp (‖X x‖² / c) ∂(ν ω) ≤ exp (L n)`. -/
+`|⟪X (σ a), X (σ b)⟫ / n - m|` of two replicas, with `|m| ≤ Q`, when `‖X x‖² ≤ c s x` and
+`𝔼 ∫ exp s ∂(ν ω) ≤ exp (L n)`. A single moment bound thus serves every contraction `X`. -/
 theorem integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment {Ω α R F : Type*}
     [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [NormedAddCommGroup F]
     [InnerProductSpace ℝ F] [MeasurableSpace F] [BorelSpace F] [SecondCountableTopology F]
@@ -212,11 +212,12 @@ theorem integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment {Ω α R F : 
     [∀ ω, IsProbabilityMeasure (ν ω)]
     (hν : ∀ Y : (R → α) → ℝ, Measurable Y →
       Measurable fun ω => ∫ σ, Y σ ∂(Measure.pi fun _ : R => ν ω))
-    {X : α → F} (hX : Measurable X) {c : ℝ} (hc : 0 < c)
-    (hsi : ∀ ω, Integrable (fun x => Real.exp (‖X x‖ ^ 2 / c)) (ν ω))
-    (hEi : Integrable (fun ω => ∫ x, Real.exp (‖X x‖ ^ 2 / c) ∂(ν ω)) P)
+    {X : α → F} (hX : Measurable X) {s : α → ℝ} {c : ℝ} (hc : 0 < c)
+    (hXs : ∀ x, ‖X x‖ ^ 2 ≤ c * s x)
+    (hsi : ∀ ω, Integrable (fun x => Real.exp (s x)) (ν ω))
+    (hEi : Integrable (fun ω => ∫ x, Real.exp (s x) ∂(ν ω)) P)
     {L n : ℝ} (hL : 0 ≤ L) (hn : 1 ≤ n)
-    (hE : ∫ ω, ∫ x, Real.exp (‖X x‖ ^ 2 / c) ∂(ν ω) ∂P ≤ Real.exp (L * n))
+    (hE : ∫ ω, ∫ x, Real.exp (s x) ∂(ν ω) ∂P ≤ Real.exp (L * n))
     (a b : R) {m Q : ℝ} (hm : |m| ≤ Q) :
     let D : (R → α) → ℝ := fun σ => |n⁻¹ * ⟪X (σ a), X (σ b)⟫ - m|
     (∀ K : ℝ, c * (L + 5) + Q < K →
@@ -237,14 +238,14 @@ theorem integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment {Ω α R F : 
       ((((hX.comp (measurable_pi_apply a)).inner
         (hX.comp (measurable_pi_apply b))).const_mul _).sub_const _)
   refine integral_integral_pi_tail_and_pow_le_of_exp_moment P ν hν
-    (s := fun x => ‖X x‖ ^ 2 / c) (fun _ => by positivity) hsi hEi hL hn hE a b hDm
-    (fun _ => abs_nonneg _) hc ((abs_nonneg m).trans hm) fun σ => ?_
-  have hinner : |⟪X (σ a), X (σ b)⟫| ≤ (‖X (σ a)‖ ^ 2 + ‖X (σ b)‖ ^ 2) / 2 := by
+    (fun x => nonneg_of_mul_nonneg_right ((sq_nonneg _).trans (hXs x)) hc) hsi hEi hL hn hE a b
+    hDm (fun _ => abs_nonneg _) hc ((abs_nonneg m).trans hm) fun σ => ?_
+  have hinner : |⟪X (σ a), X (σ b)⟫| ≤ c * ((s (σ a) + s (σ b)) / 2) := by
     nlinarith [abs_real_inner_le_norm (X (σ a)) (X (σ b)),
-      sq_nonneg (‖X (σ a)‖ - ‖X (σ b)‖)]
+      sq_nonneg (‖X (σ a)‖ - ‖X (σ b)‖), hXs (σ a), hXs (σ b)]
   refine (abs_sub _ _).trans (add_le_add ?_ hm)
   rw [abs_mul, abs_of_pos (inv_pos.2 hn0)]
   refine (mul_le_mul_of_nonneg_left hinner (inv_pos.2 hn0).le).trans_eq ?_
-  field_simp
+  ring
 
 end MeasureTheory

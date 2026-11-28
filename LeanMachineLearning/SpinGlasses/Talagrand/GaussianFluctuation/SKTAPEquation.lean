@@ -86,7 +86,8 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
   have hdom : Integrable (fun w : Ω₀ × (Fin N → ℝ) =>
       (2 * (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| + 1) ^ (2 * k)) (P.prod Q) :=
     (measurePreserving_snd (μ := P) (ν := Q)).integrable_comp_of_integrable
-      (integrable_even_pow_const_mul_sum_abs_add (ι := Fin N) (2 * (Real.sqrt N)⁻¹) 1 k (by omega))
+      ((integrable_const_add_mul_sum_abs_pow_pi_gaussianReal (ι := Fin N) 1
+        (2 * (Real.sqrt N)⁻¹) (2 * k)).congr (ae_of_all _ fun y => by rw [add_comm]))
   have hpos : 0 ≤ (Real.sqrt N)⁻¹ := inv_nonneg.mpr (Real.sqrt_nonneg _)
   have hmeas : Measurable fun w : Ω₀ × (Fin N → ℝ) =>
       (Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i - b * s w - (Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i := by

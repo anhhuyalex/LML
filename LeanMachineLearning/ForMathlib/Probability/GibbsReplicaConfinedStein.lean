@@ -12,6 +12,7 @@ public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedPair
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Analysis.Calculus.Deriv.Mul
 
@@ -846,17 +847,8 @@ theorem exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal
   have hP₁ : 0 ≤ P₁ := by positivity
   set deg : ℕ := m * Fintype.card ι + 1
   have hdom : Integrable (fun w : K → ℝ => A_m ^ Fintype.card ι *
-      (P₀ + P₁ * ∑ k, |w k|) ^ deg) γ_sh := by
-    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
-      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
-        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
-    have hsum : MemLp (fun w : K → ℝ => P₀ + P₁ * ∑ k, |w k|) deg γ_sh :=
-      (memLp_const P₀).add ((memLp_finsetSum _ fun k _ => hk k).const_mul P₁)
-    refine (hsum.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)).const_mul _
-    dsimp only
-    rw [Real.norm_eq_abs, abs_of_nonneg]
-    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    positivity
+      (P₀ + P₁ * ∑ k, |w k|) ^ deg) γ_sh :=
+    (integrable_const_add_mul_sum_abs_pow_pi_gaussianReal P₀ P₁ deg).const_mul _
   refine hdom.mono' hIm.aestronglyMeasurable (ae_of_all _ fun w => ?_)
   rw [Real.norm_eq_abs]
   refine (hpt w).trans ?_
@@ -2163,21 +2155,10 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
   -- Polynomial integrable majorant in `w`:
   set B_base : (K → ℝ) → ℝ := fun w =>
     1 + B₀ + (c₀ + (|u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_ξ|)) + 1 / 2)
-  have hBbase_mem : ∀ deg : ℕ, Integrable (fun w => B_base w ^ deg) γ_sh := fun deg => by
-    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
-      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
-        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
-    have hsum : MemLp B_base deg γ_sh := by
-      have h_eq : B_base = fun w =>
-          (1 + B₀ + c₀ + |u 0| + |D₁| * |c_ξ| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
-        funext w; dsimp only [B_base]; ring
-      rw [h_eq]
-      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
-    refine hsum.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
-    dsimp only [B_base]
-    rw [Real.norm_eq_abs, abs_of_nonneg]
-    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    positivity
+  have hBbase_mem : ∀ deg : ℕ, Integrable (fun w => B_base w ^ deg) γ_sh := fun deg =>
+    (integrable_const_add_mul_sum_abs_pow_pi_gaussianReal
+      (1 + B₀ + c₀ + |u 0| + |D₁| * |c_ξ| + 1 / 2) (|D₁| * s_A) deg).congr
+      (ae_of_all _ fun w => by dsimp only [B_base]; ring)
   set b1_dom : (K → ℝ) → ℝ := fun w =>
     (|C_f| * ((1 + |D₁|) * C_ψ) * C_S0 +
       |C_f| * ((1 + |D₁|) * C_ψ) * C_S1 * ∑ k, |w k|) * A_m1 ^ Fintype.card R *
@@ -2196,9 +2177,7 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
       linarith [abs_nonneg (u 0), mul_nonneg (abs_nonneg D₁) (add_nonneg (mul_nonneg hs_A this)
         (abs_nonneg c_ξ))]
     have h_w_mem : MemLp (fun w : K → ℝ => a₀ + a₁ * ∑ k, |w k|) 2 γ_sh :=
-      (memLp_const a₀).add ((memLp_finsetSum _ fun k _ =>
-        ((memLp_id_gaussianReal (μ := 0) (v := 1) 2).comp_measurePreserving
-          (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs).const_mul a₁)
+      memLp_const_add_mul_sum_abs_pi_gaussianReal a₀ a₁ 2
     have h_B_mem : MemLp (fun w : K → ℝ => c_m * B_base w ^ deg) 2 γ_sh := by
       have hsq : Integrable (fun w => (B_base w ^ deg) ^ 2) γ_sh := by
         simpa only [← pow_mul] using hBbase_mem (deg * 2)
@@ -2912,21 +2891,10 @@ theorem measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal
   set deg : ℕ := m * Fintype.card ι
   set W_fac : (K → ℝ) → ℝ := fun w =>
     1 + |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_ξ|) + 1 / 2
-  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh := by
-    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
-      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
-        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
-    have h_eq : W_fac = fun w =>
-        (1 + |u 0| + |D₁| * |c_ξ| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
-      funext w; dsimp only [W_fac]; ring
-    have hmem : MemLp W_fac deg γ_sh := by
-      rw [h_eq]
-      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
-    refine hmem.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
-    dsimp only [W_fac]
-    rw [Real.norm_eq_abs, abs_of_nonneg]
-    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    positivity
+  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh :=
+    (integrable_const_add_mul_sum_abs_pow_pi_gaussianReal
+      (1 + |u 0| + |D₁| * |c_ξ| + 1 / 2) (|D₁| * s_A) deg).congr
+      (ae_of_all _ fun w => by dsimp only [W_fac]; ring)
   set I_W : ℝ := ∫ w, W_fac w ^ deg ∂γ_sh
   have hIW0 : 0 ≤ I_W := integral_nonneg fun w => by
     dsimp only [W_fac]

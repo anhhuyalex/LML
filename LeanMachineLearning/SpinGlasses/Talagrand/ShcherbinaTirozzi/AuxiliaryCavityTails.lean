@@ -516,7 +516,7 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
       (B := D_sm * s_κ)
       ((huk_m k).comp (by fun_prop : Measurable fun z₀ : ℝ^(N + 1) =>
         ⟪v_vec k, s_κ • z₀⟫)).aestronglyMeasurable (mul_nonneg hDsm0 hsκ0.le) fun z₀ => by
-        rw [Function.comp_apply, Real.norm_eq_abs, abs_of_nonpos (huk_0 k _), neg_le]
+        rw [Real.norm_eq_abs, abs_of_nonpos (huk_0 k _), neg_le]
         exact le_of_eq_of_le (by ring) (hk_low k z₀)
     exact ⟨h.1, le_of_eq_of_le (by ring) (neg_le_of_abs_le h.2)⟩
   -- Integrability and expectation of the last-spin quadratic penalty under `stdGaussian (ℝ^(N+1))`
@@ -1147,7 +1147,9 @@ theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
     · rw [abs_of_nonneg (hq0.trans hqρ)]; exact hρQ
     · rw [abs_of_nonneg hq0]; exact hqρ.trans hρQ
   obtain ⟨htail, ⟨h4i, h4⟩, h8i, h8⟩ := integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment
-    auxLaw[N, M, r] G_aux hν (X := fun p : ℝ^(N + 1) × ℝ => p.1) measurable_fst hK₁_pos hsi hEi
+    auxLaw[N, M, r] G_aux hν (X := fun p : ℝ^(N + 1) × ℝ => p.1) measurable_fst
+    (s := fun p : ℝ^(N + 1) × ℝ => ‖p.1‖ ^ 2 / K₁) hK₁_pos
+    (fun _ => (mul_div_cancel₀ _ hK₁_pos.ne').ge) hsi hEi
     hL_pos.le (le_add_of_nonneg_left (Nat.cast_nonneg N)) hE a b htarget
   have hKmom : K_mom8 ≤ K := le_max_right _ _
   have hnum : 2 ^ 7 * (2 ^ 7 * K₁ ^ 8 * (8 ^ 8 + L ^ 8) + Q ^ 8) ≤ K_mom8 - 1 := by

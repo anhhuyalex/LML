@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedStein
 
@@ -35,6 +36,25 @@ universe u
 
 variable {E K : Type*} {R : Type u} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
   [MeasurableSpace E] [BorelSpace E] (μ : Measure E) [μ.IsAddHaarMeasure]
+
+/-- The coefficients of the square-root path are bounded on the unit ball, uniformly in
+`v ∈ [0, 1]`. -/
+private theorem abs_sqrt_path_coeff_le_of_norm_le_one {E K : Type*} [SeminormedAddCommGroup E]
+    [Fintype K] {X : E → K → ℝ} {L_X : ℝ} {n_X : ℕ} (hXb : ∀ k x, |X x k| ≤ L_X * (1 + ‖x‖) ^ n_X)
+    (Y : K → ℝ) {v : ℝ} (hv0 : 0 ≤ v) (hv1 : v ≤ 1) (k : K) (x : E) (hx : ‖x‖ ≤ 1) :
+    |Real.sqrt v * X x k + Real.sqrt (1 - v) * Y k| ≤ |L_X| * 2 ^ n_X + ∑ j, |Y j| := by
+  have hs1 : Real.sqrt v ≤ 1 := Real.sqrt_le_one.2 hv1
+  have hs2 : Real.sqrt (1 - v) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
+  have hX1 : |X x k| ≤ |L_X| * 2 ^ n_X :=
+    (hXb k x).trans (mul_le_mul (le_abs_self _)
+      (pow_le_pow_left₀ (by positivity) (by linarith : 1 + ‖x‖ ≤ 2) _)
+      (by positivity) (abs_nonneg _))
+  have hY1 : |Y k| ≤ ∑ j, |Y j| :=
+    Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
+  refine (abs_add_le _ _).trans ?_
+  rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
+  exact (add_le_add (mul_le_mul hs1 hX1 (abs_nonneg _) zero_le_one)
+    (mul_le_mul hs2 hY1 (abs_nonneg _) zero_le_one)).trans_eq (by rw [one_mul, one_mul])
 
 /-- **Covariance bound for the derivative along the square-root path** (the model-free form of
 Talagrand's Eq. (3.96)). Under the hypotheses of
@@ -659,21 +679,10 @@ theorem continuousOn_integral_integral_pi_tilted_prod_gaussianReal_sqrt
   set deg : ℕ := m_f * Fintype.card R
   set W_fac : (K → ℝ) → ℝ := fun w =>
     1 + |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_ξ|) + 1 / 2
-  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh := by
-    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
-      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
-        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
-    have h_eq : W_fac = fun w =>
-        (1 + |u 0| + |D₁| * |c_ξ| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
-      funext w; dsimp only [W_fac]; ring
-    have hmem : MemLp W_fac deg γ_sh := by
-      rw [h_eq]
-      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
-    refine hmem.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
-    dsimp only [W_fac]
-    rw [Real.norm_eq_abs, abs_of_nonneg]
-    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    positivity
+  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh :=
+    (integrable_const_add_mul_sum_abs_pow_pi_gaussianReal
+      (1 + |u 0| + |D₁| * |c_ξ| + 1 / 2) (|D₁| * s_A) deg).congr
+      (ae_of_all _ fun w => by dsimp only [W_fac]; ring)
   have hpt_ω : ∀ ω, ContinuousWithinAt
       (fun v => ∫ w, ∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w) ∂γ_sh)
       (Icc 0 1) v₀ := by
@@ -695,24 +704,8 @@ theorem continuousOn_integral_integral_pi_tilted_prod_gaussianReal_sqrt
         ring
       have hAvm : ∀ k, Measurable fun x => A_v x k := fun k =>
         ((hXm k).const_mul _).add measurable_const
-      have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A := fun k x hx => by
-        have hs1 : Real.sqrt v ≤ 1 := Real.sqrt_le_one.2 hv1_u
-        have hs2 : Real.sqrt (1 - v) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
-        have hX1 : |X x k| ≤ |L_X| * 2 ^ n_X :=
-          (hXb k x).trans (mul_le_mul (le_abs_self _)
-            (pow_le_pow_left₀ (by positivity) (by linarith : 1 + ‖x‖ ≤ 2) _)
-            (by positivity) (abs_nonneg _))
-        have hY1 : |Y k| ≤ s_Y :=
-          Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
-        dsimp only [A_v]
-        refine (abs_add_le _ _).trans ?_
-        rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _),
-          abs_of_nonneg (Real.sqrt_nonneg _)]
-        calc Real.sqrt v * |X x k| + Real.sqrt (1 - v) * |Y k|
-            ≤ 1 * (|L_X| * 2 ^ n_X) + 1 * s_Y :=
-              add_le_add (mul_le_mul hs1 hX1 (abs_nonneg _) zero_le_one)
-                (mul_le_mul hs2 hY1 (abs_nonneg _) zero_le_one)
-          _ = s_A := by dsimp only [s_A]; ring
+      have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A :=
+        abs_sqrt_path_coeff_le_of_norm_le_one hXb Y hv0_l hv1_u
       have hcv_le : |c_v| ≤ |c_ξ| := by
         dsimp only [c_v]
         rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
@@ -806,23 +799,8 @@ theorem integrable_prod_pi_tilted_prod_gaussianReal_sqrt
   have hsY0 : 0 ≤ s_Y := Finset.sum_nonneg fun _ _ => abs_nonneg _
   set s_A : ℝ := |L_X| * 2 ^ n_X + s_Y
   have hs_A : 0 ≤ s_A := by positivity
-  have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A := fun k x hx => by
-    have hs1 : Real.sqrt v ≤ 1 := Real.sqrt_le_one.2 hv1
-    have hs2 : Real.sqrt (1 - v) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
-    have hX1 : |X x k| ≤ |L_X| * 2 ^ n_X :=
-      (hXb k x).trans (mul_le_mul (le_abs_self _)
-        (pow_le_pow_left₀ (by positivity) (by linarith : 1 + ‖x‖ ≤ 2) _)
-        (by positivity) (abs_nonneg _))
-    have hY1 : |Y k| ≤ s_Y :=
-      Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
-    dsimp only [A_v]
-    refine (abs_add_le _ _).trans ?_
-    rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
-    calc Real.sqrt v * |X x k| + Real.sqrt (1 - v) * |Y k|
-        ≤ 1 * (|L_X| * 2 ^ n_X) + 1 * s_Y :=
-          add_le_add (mul_le_mul hs1 hX1 (abs_nonneg _) zero_le_one)
-            (mul_le_mul hs2 hY1 (abs_nonneg _) zero_le_one)
-      _ = s_A := by dsimp only [s_A]; ring
+  have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A :=
+    abs_sqrt_path_coeff_le_of_norm_le_one hXb Y hv0 hv1
   set H_fn : Ω × (K → ℝ) → ℝ := fun p => ∫ σ : ι → E × ℝ, G p.2 σ
     ∂(Measure.pi fun _ : ι =>
       (μ.prod (gaussianReal 0 1)).tilted fun q => E₀ p.1 q.1 + u (S p.2 q))
@@ -859,22 +837,10 @@ theorem integrable_prod_pi_tilted_prod_gaussianReal_sqrt
   set deg : ℕ := m * Fintype.card ι
   set W_fac : (K → ℝ) → ℝ := fun w =>
     1 + |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_v|) + 1 / 2
-  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh := by
-    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
-      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
-        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
-    have h_eq : W_fac = fun w =>
-        (1 + |u 0| + |D₁| * |c_v| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
-      funext w; dsimp only [W_fac]; ring
-    have hmem : MemLp W_fac deg γ_sh := by
-      rw [h_eq]
-      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
-    refine hmem.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
-    change ‖W_fac w‖ ^ deg = W_fac w ^ deg
-    dsimp only [W_fac]
-    rw [Real.norm_of_nonneg]
-    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    positivity
+  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh :=
+    (integrable_const_add_mul_sum_abs_pow_pi_gaussianReal
+      (1 + |u 0| + |D₁| * |c_v| + 1 / 2) (|D₁| * s_A) deg).congr
+      (ae_of_all _ fun w => by dsimp only [W_fac]; ring)
   have hdom_prod : Integrable
       (fun p : Ω × (K → ℝ) =>
         (|C_G| * A_m ^ Fintype.card ι) * ((1 + B₀ p.1 + c₀ p.1) ^ deg * W_fac p.2 ^ deg))

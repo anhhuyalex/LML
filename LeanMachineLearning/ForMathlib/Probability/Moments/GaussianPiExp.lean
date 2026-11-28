@@ -391,21 +391,29 @@ theorem memLp_coord_pi_gaussianReal {ι : Type*} [Fintype ι] (i : ι) (p : NNRe
   (memLp_id_gaussianReal (μ := 0) (v := 1) p).comp_measurePreserving
     (measurePreserving_eval (fun _ : ι => gaussianReal 0 1) i)
 
-/-- An even power of an affine function of `∑ |yᵢ|` is integrable under the i.i.d. standard
+/-- An affine function of `∑ |yᵢ|` lies in every `L^p` under the i.i.d. standard Gaussian
+law. -/
+theorem memLp_const_add_mul_sum_abs_pi_gaussianReal {ι : Type*} [Fintype ι] (a b : ℝ)
+    (p : NNReal) :
+    MemLp (fun y : ι → ℝ => a + b * ∑ i, |y i|) p
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  have h : ∀ i : ι, MemLp (fun y : ι → ℝ => |y i|) p
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := fun i =>
+    (memLp_coord_pi_gaussianReal i p).abs
+  exact (memLp_const a).add ((memLp_finsetSum Finset.univ fun i _ => h i).const_mul b)
+
+/-- Every power of an affine function of `∑ |yᵢ|` is integrable under the i.i.d. standard
 Gaussian law. -/
-theorem integrable_even_pow_const_mul_sum_abs_add {ι : Type*} [Fintype ι] (c d : ℝ) (k : ℕ)
-    (hk : k ≠ 0) :
-    Integrable (fun y : ι → ℝ => (c * ∑ i, |y i| + d) ^ (2 * k))
+theorem integrable_const_add_mul_sum_abs_pow_pi_gaussianReal {ι : Type*} [Fintype ι] (a b : ℝ)
+    (n : ℕ) :
+    Integrable (fun y : ι → ℝ => (a + b * ∑ i, |y i|) ^ n)
       (Measure.pi fun _ : ι => gaussianReal 0 1) := by
-  have hs : MemLp (fun y : ι → ℝ => ∑ i, |y i|) ((2 * k : ℕ) : NNReal)
+  have h : MemLp (fun y : ι → ℝ => a + b * ∑ i, |y i|) (n : ENNReal)
       (Measure.pi fun _ : ι => gaussianReal 0 1) := by
-    have := memLp_finsetSum' (Finset.univ : Finset ι)
-      (fun i _ => (memLp_coord_pi_gaussianReal i ((2 * k : ℕ) : NNReal)).norm)
-    simpa [Finset.sum_fn, Real.norm_eq_abs] using this
-  have h1 := (hs.const_mul c).add (memLp_const d)
-  have h2 := h1.integrable_norm_pow (by positivity : 2 * k ≠ 0)
-  have he : Even (2 * k) := ⟨k, by ring⟩
-  simpa [Real.norm_eq_abs, he.pow_abs] using h2
+    simpa only [ENNReal.coe_natCast] using
+      memLp_const_add_mul_sum_abs_pi_gaussianReal (ι := ι) a b n
+  exact h.integrable_norm_pow'.mono' (h.aestronglyMeasurable.pow n)
+    (ae_of_all _ fun y => (norm_pow _ _).le)
 
 /-- Integrability of arbitrary real powers of `cosh(w * z + h)` against any real Gaussian. -/
 theorem integrable_cosh_rpow_affine_gaussianReal (t w h : ℝ) {m : ℝ} {v : ℝ≥0} :
