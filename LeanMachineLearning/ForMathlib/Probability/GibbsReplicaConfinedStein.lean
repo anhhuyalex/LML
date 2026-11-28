@@ -252,6 +252,18 @@ theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
   have h2 : E₀ 0 ≤ 0 := by simpa using hE₀_conf 0
   linarith
 
+/-- The Haar-product weight `exp (E₀ x + u (S (x, ξ)) - ξ² / 2)` of a Gaussian-extended confined
+state is integrable. -/
+theorem integrable_exp_prod_gaussian_exponent_of_confining {κ B₀ : ℝ} (hκ : 0 < κ)
+    {E₀ : E → ℝ} (hE₀m : Measurable E₀) (hE₀ : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
+    {u : ℝ → ℝ} (hum : Measurable u) (hu0 : ∀ x, u x ≤ 0) {S : E × ℝ → ℝ} (hS : Measurable S) :
+    Integrable (fun p => Real.exp (E₀ p.1 + u (S p) - p.2 ^ 2 / 2)) (μ.prod volume) :=
+  integrable_exp_of_confining (μ := μ.prod volume) (lt_min hκ one_half_pos)
+    (((hE₀m.comp measurable_fst).add (hum.comp hS)).sub
+      ((measurable_snd.pow_const 2).div_const 2))
+    (prod_gaussian_exponent_confining hκ (abs_nonneg B₀)
+      (fun x => (hE₀ x).trans (by gcongr; exact le_abs_self _)) hu0 S)
+
 /-- The one-replica state `(μ × 𝒩(0, 1)).tilted (E₀ x + u (S (x, ξ)))`, with `E₀` confined and
 `u ≤ 0`, is a probability measure. -/
 theorem isProbabilityMeasure_tilted_prod_gaussianReal_of_confining {κ B₀ : ℝ} (hκ : 0 < κ)
@@ -260,12 +272,26 @@ theorem isProbabilityMeasure_tilted_prod_gaussianReal_of_confining {κ B₀ : �
     IsProbabilityMeasure
       ((μ.prod (gaussianReal 0 1)).tilted fun p => E₀ p.1 + u (S p)) := by
   rw [tilted_prod_gaussianReal_zero_one μ]
-  exact isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ.prod volume)
-    (lt_min hκ one_half_pos)
-    (((hE₀m.comp measurable_fst).add (hum.comp hS)).sub
-      ((measurable_snd.pow_const 2).div_const 2))
-    (prod_gaussian_exponent_confining hκ (abs_nonneg B₀)
-      (fun x => (hE₀ x).trans (by gcongr; exact le_abs_self _)) hu0 S))
+  exact isProbabilityMeasure_tilted
+    (integrable_exp_prod_gaussian_exponent_of_confining μ hκ hE₀m hE₀ hum hu0 hS)
+
+/-- Under the one-replica state `(μ × 𝒩(0, 1)).tilted (E₀ x + u (S (x, ξ)))`, with `E₀ x ≤
+B₀ ‖x‖ - κ ‖x‖²` and `u ≤ 0`, the Gaussian exponential moment `exp (a ‖x‖²)` is finite for every
+`a < κ`. -/
+theorem integrable_exp_mul_sq_norm_tilted_prod_gaussianReal_of_confining {κ B₀ a : ℝ}
+    (hκ : 0 < κ) (ha : a < κ) {E₀ : E → ℝ} (hE₀m : Measurable E₀)
+    (hE₀ : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2) {u : ℝ → ℝ} (hum : Measurable u)
+    (hu0 : ∀ x, u x ≤ 0) {S : E × ℝ → ℝ} (hS : Measurable S) :
+    Integrable (fun p => Real.exp (a * ‖p.1‖ ^ 2))
+      ((μ.prod (gaussianReal 0 1)).tilted fun p => E₀ p.1 + u (S p)) := by
+  rw [tilted_prod_gaussianReal_zero_one μ, integrable_tilted_iff
+    (integrable_exp_prod_gaussian_exponent_of_confining μ hκ hE₀m hE₀ hum hu0 hS)]
+  refine (integrable_exp_prod_gaussian_exponent_of_confining μ (sub_pos.2 ha)
+    (E₀ := fun x => E₀ x + a * ‖x‖ ^ 2) (B₀ := B₀)
+    (hE₀m.add ((measurable_norm.pow_const 2).const_mul a))
+    (fun x => by linarith [hE₀ x]) hum hu0 hS).congr (ae_of_all _ fun p => ?_)
+  simp only [smul_eq_mul, ← Real.exp_add]
+  ring_nf
 
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 /-- Away from the endpoints, the derivative in `v` of the field

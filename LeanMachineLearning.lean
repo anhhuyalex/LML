@@ -117,6 +117,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.Parametrized
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiDisjointSupports
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaExpMomentTail
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal

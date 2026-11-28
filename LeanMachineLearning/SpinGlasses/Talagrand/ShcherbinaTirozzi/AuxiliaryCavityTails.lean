@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaExpMomentTail
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityDerivative
@@ -370,15 +371,15 @@ theorem exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le (κ₀ h₀ D 
 `rBar ≤ r`, `r - rBar ≤ R_diff`, `M ≤ 10 * (N + 1)`, `κ₀ ≤ κ`, and `|h| ≤ h₀`, the quenched average
 of `exp (κ ‖σ‖² / 2)` under the smoothed Hamiltonian (3.99) is bounded by
 `exp (K₀ * ((N + 1) + √(∑_{k,i} g_{k,i}²) + ∑_i g₀_i² + y² + z²))`, with `K₀` depending only on
-`κ₀, h₀, D, Q, R_diff` and `|u 0|`. -/
+`κ₀, h₀, D, Q, R_diff`. -/
 theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
-    (κ₀ h₀ D Q R_diff u₀_abs : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR_diff : 0 ≤ R_diff) :
+    (κ₀ h₀ D Q R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR_diff : 0 ≤ R_diff) :
     ∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ (N M : ℕ) (κ h t v q ρ r rBar : ℝ) (u : ℝ → ℝ) (D₂ : ℝ)
       (w : AuxDis[N, M]),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 ≤ t → t ≤ 1 → 0 ≤ v → v ≤ 1 → 0 ≤ q → q ≤ ρ → ρ ≤ Q →
       rBar ≤ r → r - rBar ≤ R_diff → M ≤ 10 * (N + 1) → ConcaveOn ℝ Set.univ u →
       (∀ x, u x ≤ 0) → Differentiable ℝ u → Differentiable ℝ (deriv u) →
-      (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) → |u 0| ≤ u₀_abs →
+      (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) → -D ≤ u 0 →
       let E_old : ℝ^(N + 1) → ℝ := fun σ =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u
           (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
@@ -393,18 +394,19 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
       Integrable (fun σ : ℝ^(N + 1) => Real.exp (κ / 2 * ‖σ‖ ^ 2)) G_sm ∧
         ∫ σ, Real.exp (κ / 2 * ‖σ‖ ^ 2) ∂G_sm ≤
           Real.exp (K₀ * (B_star + w.1.1 ^ 2 + w.2 ^ 2)) := by
-  set D_sm : ℝ := |u₀_abs| + |D| * (1 + Real.sqrt Q)
+  set D_sm : ℝ := |D| * (2 + Real.sqrt Q)
   set K₀ : ℝ := 1 + 12 * D_sm + D_sm * Real.sqrt (11 / κ₀) + D_sm * Q +
     R_diff / (4 * κ₀) + (h₀ ^ 2 + 1) / κ₀
   have hDsm0 : 0 ≤ D_sm := by positivity
   have hK₀_nn : 0 ≤ K₀ := by positivity
   refine ⟨K₀, hK₀_nn, fun N M κ h t v q ρ r rBar u D₂ w hκ hh ht0 ht1 hv0 hv1 hq0 hqρ hρQ
-    hrr hrr_diff hM huc hu0 hu1 hu2 hD hD₂ hu0_abs => ?_⟩
+    hrr hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD => ?_⟩
   intro E_old u_v G_sm B_star
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   have hD_le : D ≤ |D| := le_abs_self D
-  have hu0_le : |u 0| ≤ |u₀_abs| := hu0_abs.trans (le_abs_self _)
+  have hu0_le : |u 0| ≤ |D| :=
+    abs_le.2 ⟨(neg_le_neg (le_abs_self D)).trans huD, (hu0 0).trans (abs_nonneg D)⟩
   set c : ℝ := Real.sqrt (1 - v) * Real.sqrt (ρ - q)
   have hc_abs : |c| ≤ Real.sqrt Q := by
     dsimp only [c]
@@ -416,9 +418,10 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
   have huvm : Measurable u_v := huv_diff.continuous.measurable
   have hum : Measurable u := hu1.continuous.measurable
   have hDsm_ge : |u 0| + D * (1 + |c|) ≤ D_sm := by
+    refine (add_le_add hu0_le (mul_le_mul hD_le (add_le_add le_rfl hc_abs) (by positivity)
+      (abs_nonneg D))).trans_eq ?_
     dsimp only [D_sm]
-    refine add_le_add hu0_le (mul_le_mul hD_le (add_le_add le_rfl hc_abs) (by positivity)
-      (abs_nonneg D))
+    ring
   have huv_low' : ∀ y, -D_sm * (1 + |y|) ≤ u_v y := fun y =>
     (mul_le_mul_of_nonneg_right (neg_le_neg hDsm_ge) (by positivity)).trans
       (by simpa only [neg_mul] using huv_low y)
@@ -811,17 +814,17 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
 
 /-- **Eq. (3.102):** along `ν_{t,v}`, `ν_{t,v}(exp (‖σ‖² / K₁)) ≤ exp (L (N + 1))` uniformly in
 `N, M, t, v` and in `0 ≤ q ≤ ρ ≤ Q`, `rBar ≤ r ≤ R`, `r - rBar ≤ R_diff`, with positive constants
-`K₁, L` depending only on `κ₀, h₀, D, Q, R, R_diff` and `|u 0|`. -/
+`K₁, L` depending only on `κ₀, h₀, D, Q, R, R_diff`. -/
 theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
-    (κ₀ h₀ D Q R R_diff u₀_abs : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R)
+    (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R)
     (hR_diff : 0 ≤ R_diff) :
-    ∃ K₁ L : ℝ, 0 < K₁ ∧ 0 < L ∧ ∀ (N M : ℕ) (κ h t v q ρ rBar : ℝ) (r : ℝ≥0)
+    ∃ K₁ L : ℝ, 0 < K₁ ∧ 0 < L ∧ 8 / κ₀ ≤ K₁ ∧ ∀ (N M : ℕ) (κ h t v q ρ rBar : ℝ) (r : ℝ≥0)
       (u : ℝ → ℝ) (D₂ : ℝ),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 ≤ t → t ≤ 1 → 0 ≤ v → v ≤ 1 → 0 ≤ q → q ≤ ρ → ρ ≤ Q →
       rBar ≤ r → (r : ℝ) ≤ R → (r : ℝ) - rBar ≤ R_diff → M ≤ 10 * (N + 1) →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → Differentiable ℝ u →
       Differentiable ℝ (deriv u) → (∀ x, |deriv u x| ≤ D) →
-      (∀ x, |deriv (deriv u) x| ≤ D₂) → |u 0| ≤ u₀_abs →
+      (∀ x, |deriv (deriv u) x| ≤ D₂) → -D ≤ u 0 →
       let E_old : AuxDis[N, M] → ℝ^(N + 1) → ℝ := fun w σ =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u
           (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
@@ -834,14 +837,17 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
             fun p => E_old w p.1 + u (S_v w p))
       Integrable F auxLaw[N, M, r] ∧ ∫ w, F w ∂auxLaw[N, M, r] ≤ Real.exp (L * (N + 1)) := by
   obtain ⟨K₀, hK₀_nn, hK₀⟩ :=
-    exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp κ₀ h₀ D Q R_diff u₀_abs
+    exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp κ₀ h₀ D Q R_diff
       hκ₀ hQ hR_diff
   set K₁ : ℝ := 8 * (K₀ + 1) * (R + 1) / κ₀
   set L : ℝ := 7
   have hK₁_pos : 0 < K₁ := by positivity
   have hL_pos : 0 < L := by norm_num
-  refine ⟨K₁, L, hK₁_pos, hL_pos, fun N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hq0 hqρ
-    hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ hu0_abs => ?_⟩
+  have hK₁_ge₀ : 8 / κ₀ ≤ K₁ := by
+    dsimp only [K₁]
+    exact div_le_div_of_nonneg_right (by nlinarith) hκ₀.le
+  refine ⟨K₁, L, hK₁_pos, hL_pos, hK₁_ge₀, fun N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1
+    hq0 hqρ hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD => ?_⟩
   intro E_old S_v F
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum : Measurable u := hu1.continuous.measurable
@@ -919,7 +925,7 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
         rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_add]
         exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (huv0 _)))
     obtain ⟨hq_int, hq_le⟩ := hK₀ N M κ h t v q ρ r rBar u D₂ w hκ hh ht0 ht1 hv0 hv1 hq0 hqρ hρQ
-      hrr hrr_diff hM huc hu0 hu1 hu2 hD hD₂ hu0_abs
+      hrr hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD
     have hj := (integral_rpow_le_rpow_integral (μ := G_sm) hp_pos.le hp_le1
       (ae_of_all _ fun _ => (Real.exp_pos _).le) hq_int).2
     have hpow_eq : ∀ σ : ℝ^(N + 1),
@@ -1143,13 +1149,13 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
         linarith [Nat.cast_nonneg (α := ℝ) N]
 
 /-- **Eqs. (3.97)--(3.98), (3.103), (3.104):** along `ν_{t,v}`, there is a constant `K` depending
-only on `κ₀, h₀, D, Q, R, R_diff` and `|u 0|` such that uniformly in `N, M, t, v` and in
+only on `κ₀, h₀, D, Q, R, R_diff` such that uniformly in `N, M, t, v` and in
 `0 ≤ q ≤ ρ ≤ Q`, `rBar ≤ r ≤ R`, `r - rBar ≤ R_diff`, for any replica `a : R` and any pair `a, b`:
 1. `ν_{t,v}(1_{K ≤ |R_{a,b} - (ρ if a = b else q)|}) ≤ exp (-4 (N + 1))`,
 2. `ν_{t,v}(1_{K ≤ R_{a,a}}) ≤ exp (-4 (N + 1))` and `ν_{t,v}(1_{K ≤ |R_{a,b}|}) ≤ 2 exp (-4 (N + 1))`,
 3. `ν_{t,v}((R_{a,b} - (ρ if a = b else q))^8) ≤ K` and `ν_{t,v}((R_{a,b} - (ρ if a = b else q))^4) ≤ K`. -/
 theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
-    (κ₀ h₀ D Q R R_diff u₀_abs : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R)
+    (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R)
     (hR_diff : 0 ≤ R_diff) :
     ∃ K : ℝ, 0 < K ∧ ∀ {R_rep : Type*} [Fintype R_rep] [DecidableEq R_rep]
       (N M : ℕ) (κ h t v q ρ rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ) (D₂ : ℝ) (a b : R_rep),
@@ -1157,7 +1163,7 @@ theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
       rBar ≤ r → (r : ℝ) ≤ R → (r : ℝ) - rBar ≤ R_diff → M ≤ 10 * (N + 1) →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → Differentiable ℝ u →
       Differentiable ℝ (deriv u) → (∀ x, |deriv u x| ≤ D) →
-      (∀ x, |deriv (deriv u) x| ≤ D₂) → |u 0| ≤ u₀_abs →
+      (∀ x, |deriv (deriv u) x| ≤ D₂) → -D ≤ u 0 →
       let E_old : AuxDis[N, M] → ℝ^(N + 1) → ℝ := fun w σ =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u
           (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
@@ -1180,8 +1186,8 @@ theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
         Integrable (fun w => ∫ σ, Dev σ ^ 8 ∂(Measure.pi fun _ : R_rep => G_aux w))
           auxLaw[N, M, r] ∧
         (∫ w, ∫ σ, Dev σ ^ 8 ∂(Measure.pi fun _ : R_rep => G_aux w) ∂auxLaw[N, M, r] ≤ K) := by
-  obtain ⟨K₁, L, hK₁_pos, hL_pos, h3102⟩ :=
-    exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp κ₀ h₀ D Q R R_diff u₀_abs
+  obtain ⟨K₁, L, hK₁_pos, hL_pos, hK₁_ge₀, h3102⟩ :=
+    exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp κ₀ h₀ D Q R R_diff
       hκ₀ hQ hR hR_diff
   set K_norm : ℝ := K₁ * (L + 5)
   set K_thr : ℝ := K_norm + Q + 1
@@ -1190,155 +1196,70 @@ theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
   have hK_pos : 0 < K := lt_of_lt_of_le (by dsimp only [K_thr, K_norm]; positivity)
     (le_max_left _ _)
   refine ⟨K, hK_pos, fun {R_rep} _ _ N M κ h t v q ρ rBar r u D₂ a b hκ hh ht0 ht1 hv0 hv1 hq0
-    hqρ hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ hu0_abs => ?_⟩
+    hqρ hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD => ?_⟩
   intro E_old S_v G_aux Dev
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum : Measurable u := hu1.continuous.measurable
   have hq_t : 0 ≤ (1 - t) * ((r : ℝ) - rBar) :=
     mul_nonneg (sub_nonneg.2 ht1) (sub_nonneg.2 hrr)
-  have hG_prob : ∀ w : AuxDis[N, M], IsProbabilityMeasure (G_aux w) := fun w => by
-    have hEold_i := integrable_exp_neg_shcherbinaTirozziCavityHamiltonian (κ := κ) (h := h)
-      (r := r) (rBar := rBar) (t := t) (y := w.1.1) hκ0 hq_t hum hu0
-      (fun j => w.1.2.1 j.castSucc) w.1.2.2
-    have hEm := (measurable_auxCavity_exponent κ h r rBar t v q ρ hum).comp
-      (measurable_const.prodMk measurable_id)
-    refine isProbabilityMeasure_tilted ?_
-    exact (hEold_i.comp_fst (gaussianReal 0 1)).mono' hEm.exp.aestronglyMeasurable
-      (ae_of_all _ fun p => by
-        rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_add]
-        exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (hu0 _)))
-  obtain ⟨hexp_i, hexp_le⟩ := h3102 N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hq0 hqρ
-    hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ hu0_abs
-  -- Measurability of `Dev` and replica marginalization of `exp (‖(σ r).1‖² / K₁)`
-  have hDevm : Measurable Dev := by
-    have ha_c : Continuous fun σ : R_rep → ℝ^(N + 1) × ℝ => (σ a).1 :=
-      continuous_fst.comp (continuous_apply a)
-    have hb_c : Continuous fun σ : R_rep → ℝ^(N + 1) × ℝ => (σ b).1 :=
-      continuous_fst.comp (continuous_apply b)
-    exact ((((ha_c.inner hb_c).measurable).const_mul _).sub_const _).abs
-  have hexp_q : ∀ w : AuxDis[N, M],
+  have hEm : Measurable fun p : AuxDis[N, M] × (ℝ^(N + 1) × ℝ) =>
+      E_old p.1 p.2.1 + u (S_v p.1 p.2) :=
+    measurable_auxCavity_exponent κ h r rBar t v q ρ hum
+  -- each disorder sample gives a confined one-replica state
+  have hstate : ∀ w : AuxDis[N, M], IsProbabilityMeasure (G_aux w) ∧
       Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) (G_aux w) := by
     intro w
-    set u_v : ℝ → ℝ := fun y =>
-      Real.log (∫ ξ, Real.exp (u (y + Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ))
-        ∂(gaussianReal 0 1))
-    obtain ⟨huv_conc, huv0, huv_diff, -, -⟩ :=
-      concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal huc hu0 hu1 hu2 hD hD₂
-        (Real.sqrt (1 - v) * Real.sqrt (ρ - q))
-    -- Actually, we can prove quenched integrability directly since `E_old w p.1 + u (S_v w p) ≤ B ‖p.1‖ - κ ‖p.1‖²`
-    -- and `1 / K₁ ≤ κ / 2`! Let's check: `K₁ = 8 * (K₀ + 1) * (R + 1) / κ₀ ≥ 8 / κ₀ ≥ 8 / κ`, so `1 / K₁ ≤ κ / 8`!
-    have hK₁_ge : 8 / κ ≤ K₁ := by
-      have h1 : 8 / κ ≤ 8 / κ₀ := div_le_div_of_nonneg_left (by norm_num) hκ₀ hκ
-      have h2 : 8 / κ₀ ≤ K₁ := by
-        dsimp only [K₁]
-        exact div_le_div_of_nonneg_right (by nlinarith) hκ₀.le
-      exact h1.trans h2
-    have hEold_i := integrable_exp_neg_shcherbinaTirozziCavityHamiltonian (κ := κ) (h := h)
-      (r := r) (rBar := rBar) (t := t) (y := w.1.1) hκ0 hq_t hum hu0
-      (fun j => w.1.2.1 j.castSucc) w.1.2.2
-    have hEm := (measurable_auxCavity_exponent κ h r rBar t v q ρ hum).comp
-      (measurable_const.prodMk measurable_id)
-    have hEi : Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (E_old w p.1 + u (S_v w p)))
-        ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) :=
-      (hEold_i.comp_fst (gaussianReal 0 1)).mono' hEm.exp.aestronglyMeasurable
-        (ae_of_all _ fun p => by
-          rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_add]
-          exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (hu0 _)))
-    rw [integrable_tilted_iff hEi]
-    set B_lin : ℝ := |h| * (∑ i, |w.1.2.2 i|) + |w.1.1|
-    have hdom_vol := integrable_one_add_norm_pow_mul_exp (μ := (volume : Measure (ℝ^(N + 1))))
-      (κ := κ / 2) (by positivity) B_lin 0
-    refine (hdom_vol.comp_fst (gaussianReal 0 1)).mono'
-      (hEm.exp.aestronglyMeasurable.smul
-        ((((continuous_norm (E := ℝ^(N + 1))).measurable.comp measurable_fst).pow_const
-          2).div_const K₁).exp.aestronglyMeasurable) (ae_of_all _ fun p => ?_)
-    rw [norm_smul, Real.norm_of_nonneg (Real.exp_pos _).le,
-      Real.norm_of_nonneg (Real.exp_pos _).le, pow_zero, one_mul, ← Real.exp_add]
-    refine Real.exp_le_exp.2 ?_
-    have hconf := neg_shcherbinaTirozziCavityHamiltonian_le κ h w.1.1 hrr ht0 ht1 hu0
-      (fun j => w.1.2.1 j.castSucc) w.1.2.2 p.1
-    have hu_le : u (S_v w p) ≤ 0 := hu0 _
-    have hdiv_le : ‖p.1‖ ^ 2 / K₁ ≤ κ / 2 * ‖p.1‖ ^ 2 := by
-      have h1 : ‖p.1‖ ^ 2 / K₁ ≤ ‖p.1‖ ^ 2 / (8 / κ) :=
-        div_le_div_of_nonneg_left (sq_nonneg _) (by positivity) hK₁_ge
-      have h2 : ‖p.1‖ ^ 2 / (8 / κ) = κ / 8 * ‖p.1‖ ^ 2 := by field_simp
-      linarith [sq_nonneg ‖p.1‖]
-    dsimp only [E_old, B_lin] at hconf ⊢
-    linarith
-  -- Evaluate `∫ σ, exp (‖(σ c).1‖² / K₁) ∂(Measure.pi G_aux)` as the 1-replica integral
-  have hrep_exp : ∀ (c : R_rep) (w : AuxDis[N, M]),
-      Integrable (fun σ : R_rep → ℝ^(N + 1) × ℝ => Real.exp (‖(σ c).1‖ ^ 2 / K₁))
-        (Measure.pi fun _ : R_rep => G_aux w) ∧
-      ∫ σ : R_rep → ℝ^(N + 1) × ℝ, Real.exp (‖(σ c).1‖ ^ 2 / K₁)
-        ∂(Measure.pi fun _ : R_rep => G_aux w) =
-        ∫ p : ℝ^(N + 1) × ℝ, Real.exp (‖p.1‖ ^ 2 / K₁) ∂(G_aux w) := by
-    intro c w
-    have hmp := measurePreserving_eval (fun _ : R_rep => G_aux w) c
-    have hg_i := hexp_q w
-    exact ⟨(hmp.integrable_comp hg_i.aestronglyMeasurable).2 hg_i,
-      hmp.integral_comp_of_aestronglyMeasurable hg_i.aestronglyMeasurable⟩
-  -- Pointwise inequality `Dev σ ≤ ((N + 1)⁻¹ / 2) * (‖(σ a).1‖² + ‖(σ b).1‖²) + Q`
-  have hDev_le : ∀ σ : R_rep → ℝ^(N + 1) × ℝ,
-      Dev σ ≤ ((N : ℝ) + 1)⁻¹ * ((‖(σ a).1‖ ^ 2 + ‖(σ b).1‖ ^ 2) / 2) + Q := by
-    intro σ
-    dsimp only [Dev]
-    have htarget : |if a = b then ρ else q| ≤ Q := by
-      split
-      · rw [abs_of_nonneg (hq0.trans hqρ)]; exact hqρ.trans hρQ
-      · rw [abs_of_nonneg hq0]; exact hqρ.trans hρQ
-    have hinner : |⟪(σ a).1, (σ b).1⟫| ≤ (‖(σ a).1‖ ^ 2 + ‖(σ b).1‖ ^ 2) / 2 := by
-      have h1 := abs_real_inner_le_norm (σ a).1 (σ b).1
-      nlinarith [sq_nonneg (‖(σ a).1‖ - ‖(σ b).1‖)]
-    refine (abs_sub _ _).trans (add_le_add ?_ htarget)
-    rw [abs_mul, abs_of_nonneg (by positivity)]
-    exact mul_le_mul_of_nonneg_left hinner (by positivity)
-  -- Part 1: Tail bound `ν_{t,v}(1_{K ≤ Dev}) ≤ exp (-4 (N + 1))`
-  have hSm : MeasurableSet {τ : R_rep → ℝ^(N + 1) × ℝ | K ≤ Dev τ} :=
-    measurableSet_le measurable_const hDevm
-  have hInd_pt : ∀ σ : R_rep → ℝ^(N + 1) × ℝ,
-      ({τ | K ≤ Dev τ}.indicator (fun _ => (1 : ℝ)) σ) ≤
-        (Real.exp (-K_norm * ((N : ℝ) + 1) / K₁) / 2) *
-          (Real.exp (‖(σ a).1‖ ^ 2 / K₁) + Real.exp (‖(σ b).1‖ ^ 2 / K₁)) := by
-    intro σ
-    by_cases hσ : σ ∈ {τ | K ≤ Dev τ}
-    · simp only [Set.indicator_of_mem hσ]
-      have hK_ge : K_norm + Q ≤ Dev σ := by
-        have : K_norm + Q ≤ K := (by dsimp only [K_thr]; linarith : K_norm + Q ≤ K_thr).trans
-          (le_max_left _ _)
-        exact this.trans hσ
-      have hsum_ge : 2 * K_norm * ((N : ℝ) + 1) ≤ ‖(σ a).1‖ ^ 2 + ‖(σ b).1‖ ^ 2 := by
-        have h1 : K_norm ≤ ((N : ℝ) + 1)⁻¹ * ((‖(σ a).1‖ ^ 2 + ‖(σ b).1‖ ^ 2) / 2) := by
-          linarith [hDev_le σ]
-        have hNpos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-        have h2 := mul_le_mul_of_nonneg_left h1 hNpos.le
-        rw [← mul_assoc, mul_inv_cancel₀ hNpos.ne', one_mul] at h2
-        linarith
-      have hmax : K_norm * ((N : ℝ) + 1) ≤ ‖(σ a).1‖ ^ 2 ∨
-          K_norm * ((N : ℝ) + 1) ≤ ‖(σ b).1‖ ^ 2 := by
-        by_contra hcon; push Not at hcon; linarith
-      have hexp_ab : Real.exp (K_norm * ((N : ℝ) + 1) / K₁) ≤
-          Real.exp (‖(σ a).1‖ ^ 2 / K₁) + Real.exp (‖(σ b).1‖ ^ 2 / K₁) := by
-        rcases hmax with ha | hb
-        · exact (Real.exp_le_exp.2 (div_le_div_of_nonneg_right ha hK₁_pos.le)).trans
-            (le_add_of_nonneg_right (Real.exp_pos _).le)
-        · exact (Real.exp_le_exp.2 (div_le_div_of_nonneg_right hb hK₁_pos.le)).trans
-            (le_add_of_nonneg_left (Real.exp_pos _).le)
-      have hmul := mul_le_mul_of_nonneg_left hexp_ab
-        (div_nonneg (Real.exp_pos (-K_norm * ((N : ℝ) + 1) / K₁)).le zero_le_two)
-      have h1_le : (1 : ℝ) ≤ (Real.exp (-K_norm * ((N : ℝ) + 1) / K₁) / 2) *
-          Real.exp (K_norm * ((N : ℝ) + 1) / K₁) * 2 := by
-        have heq : (Real.exp (-K_norm * ((N : ℝ) + 1) / K₁) / 2) *
-            Real.exp (K_norm * ((N : ℝ) + 1) / K₁) = (1 / 2 : ℝ) := by
-          rw [div_mul_eq_mul_div, ← Real.exp_add, show -K_norm * ((N : ℝ) + 1) / K₁ +
-            K_norm * ((N : ℝ) + 1) / K₁ = 0 by ring, Real.exp_zero]
-        rw [heq]; norm_num
-      -- Wait: `1 ≤ (exp(-c)/2) * exp(c) = 1/2` is FALSE! Because if only ONE of `a, b` exceeds `K_norm * (N+1)`,
-      -- the sum `exp(a) + exp(b)` is `≥ exp(c)`, NOT `2 * exp(c)`! So the factor shouldn't divide by `2`,
-      -- we should take `K_norm = K₁ * (L + 5)` so `2 * exp (-K_norm (N+1)/K₁) * exp (L (N+1)) = 2 exp (-5(N+1)) ≤ exp (-4(N+1))`!
-      sorry
-    · simp only [Set.indicator_of_notMem hσ]
-      positivity
-  sorry
+    have hconf := fun σ => neg_shcherbinaTirozziCavityHamiltonian_le κ h w.1.1 hrr ht0 ht1 hu0
+      (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
+    have hE₀m : Measurable (E_old w) :=
+      (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t w.1.1 hum
+        (fun j => w.1.2.1 j.castSucc) w.1.2.2).neg
+    have hSm : Measurable (S_v w) := by
+      have hc : Continuous (S_v w) := by
+        dsimp only [S_v]
+        fun_prop
+      exact hc.measurable
+    refine ⟨isProbabilityMeasure_tilted_prod_gaussianReal_of_confining volume hκ0 hE₀m hconf
+      hum hu0 hSm, ?_⟩
+    have ha : K₁⁻¹ < κ := by
+      refine inv_lt_of_inv_lt₀ hκ0 (lt_of_lt_of_le ?_
+        ((div_le_div_of_nonneg_left (by norm_num) hκ₀ hκ).trans hK₁_ge₀))
+      rw [inv_eq_one_div]
+      exact div_lt_div_of_pos_right (by norm_num) hκ0
+    simp_rw [div_eq_inv_mul _ K₁]
+    exact integrable_exp_mul_sq_norm_tilted_prod_gaussianReal_of_confining volume hκ0 ha hE₀m hconf
+      hum hu0 hSm
+  have : ∀ w, IsProbabilityMeasure (G_aux w) := fun w => (hstate w).1
+  have hν : ∀ Y : (R_rep → ℝ^(N + 1) × ℝ) → ℝ, Measurable Y →
+      Measurable fun w => ∫ σ, Y σ ∂(Measure.pi fun _ : R_rep => G_aux w) := fun Y hY =>
+    measurable_integral_pi_tilted_of_sigmaFinite
+      (μ' := (volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) hEm (hY.comp measurable_snd)
+  obtain ⟨hexp_i, hexp_le⟩ := h3102 N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hq0 hqρ
+    hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD
+  have hEi : Integrable (fun w => ∫ p : ℝ^(N + 1) × ℝ, Real.exp (‖p.1‖ ^ 2 / K₁) ∂(G_aux w))
+      auxLaw[N, M, r] := hexp_i
+  have hE : ∫ w, ∫ p : ℝ^(N + 1) × ℝ, Real.exp (‖p.1‖ ^ 2 / K₁) ∂(G_aux w) ∂auxLaw[N, M, r] ≤
+      Real.exp (L * ((N : ℝ) + 1)) := hexp_le
+  have hsi := fun w => (hstate w).2
+  -- from here on the Gibbs state is opaque
+  clear_value G_aux
+  have htarget : |if a = b then ρ else q| ≤ Q := by
+    split
+    · rw [abs_of_nonneg (hq0.trans hqρ)]; exact hρQ
+    · rw [abs_of_nonneg hq0]; exact hqρ.trans hρQ
+  obtain ⟨htail, ⟨h4i, h4⟩, h8i, h8⟩ := integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment
+    auxLaw[N, M, r] G_aux hν (X := fun p : ℝ^(N + 1) × ℝ => p.1) measurable_fst hK₁_pos hsi hEi
+    hL_pos.le (le_add_of_nonneg_left (Nat.cast_nonneg N)) hE a b htarget
+  have hKmom : K_mom8 ≤ K := le_max_right _ _
+  have hnum : 2 ^ 7 * (2 ^ 7 * K₁ ^ 8 * (8 ^ 8 + L ^ 8) + Q ^ 8) ≤ K_mom8 - 1 := by
+    have hpos : 0 ≤ (8 ^ 8 + L ^ 8) * K₁ ^ 8 := by positivity
+    dsimp only [K_mom8]
+    nlinarith
+  have hKtail : K₁ * (L + 5) + Q < K :=
+    (show K₁ * (L + 5) + Q < K_thr by dsimp only [K_thr, K_norm]; linarith).trans_le
+      (le_max_left _ _)
+  exact ⟨(htail K hKtail).1, (htail K hKtail).2, h4i, h4.trans (by linarith), h8i,
+    h8.trans (by linarith)⟩
 
 end TailAndMomentBounds
 
