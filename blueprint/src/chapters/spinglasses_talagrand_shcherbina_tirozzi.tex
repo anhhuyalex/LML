@@ -915,7 +915,8 @@ Lemma~\ref{lem:sg-tal:st-marginal}. Apply Lemma~\ref{lem:sg-tal:st-mean-mode}.
 \end{proof}
 
 \begin{theorem}[Exponential tail of the last spin]\label{thm:sg-tal:st-last-spin-tail}
-  \lean{SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziCavity_last_le}
+  \lean{SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziCavity_last_le,
+        SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le}
   \leanok
   \uses{lem:sg-tal:st-last-spin, lem:sg-tal:st-exp-square}
 \talsource{Lemma~3.2.6}
@@ -926,6 +927,8 @@ and all concave differentiable $u\le0$ with $|u'|\le D$,
 \mathbb E\,\Bigl\langle\exp\frac{\varepsilon^2}{K}\Bigr\rangle_t\le K,
 \]
 the expectation being over the disorder and $y\sim\mathcal N(0,r)$ (and the left side being integrable).
+The same bound holds when the $k$-th constraint carries its own potential $u_k$ satisfying these assumptions,
+for $M\le11(N+1)$, and $K$ can then be taken with $K\ge16/\kappa_0$.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -943,7 +946,8 @@ $e^{2Lf'(0)^2}$, $e^{8Lh_0^2g_{N+1}^2}$ and $e^{8Ly^2}$.
 \emph{Step 3 (Gaussian integrals).} Conditionally on the other variables, $f'(0)$ is a linear form in
 $(g_{N+1,k})_{k\le M}$ whose coefficients have squared norm at most $MD^2/(N+1)\le10D^2$. Each of the three
 expectations is at most $2$ by Lemma~\ref{lem:sg-tal:st-exp-square} when $K$ is large in terms of
-$\kappa_0,h_0,D,R$.
+$\kappa_0,h_0,D,R$. With potentials $u_k$ and $M\le11(N+1)$ the squared norm is at most $11D^2$, and nothing else
+changes.
 \end{proof}
 
 \begin{remark}[Differences from Lemma~3.2.6]\label{rem:sg-tal:st-lemma-326}
@@ -1090,6 +1094,56 @@ formal statement keeps the sum $(N+1)^{-1}\sum_{k<M}$ over all constraints (befo
 Terms~IV and~V into $-\bar r\,\mathbb E[D(\varepsilon^2)/2]$.
 \end{remark}
 
+\begin{lemma}[Moments and continuity along the cavity path]\label{lem:sg-tal:st-cavity-moments}
+  \lean{SpinGlasses.integrable_cavity_disorder_pow,
+        SpinGlasses.cavity_disorder_size_bounds,
+        SpinGlasses.one_add_cavity_confinement_le,
+        SpinGlasses.integrable_of_abs_le_cavity_disorder_pow,
+        SpinGlasses.measurable_cavity_exponent,
+        SpinGlasses.exists_integral_one_add_norm_pow_cavity_le,
+        SpinGlasses.integrable_integral_pi_shcherbinaTirozziCavity,
+        SpinGlasses.continuousOn_integral_integral_pi_shcherbinaTirozziCavity}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-confined, lem:sg-tal:st-replica-second}
+\talsource{implicit in Proposition~3.2.1}
+Let $\kappa>0$, $r\ge0$, $\bar r\le r$, and let $u\le0$ be differentiable with $|u'|\le D$. Write $P$ for the law
+of $(y,g,g_0)$, with $y\sim\mathcal N(0,r)$ and $g,g_0$ standard Gaussian, and
+\[
+\mathrm{size}(y,g,g_0)=1+|y|+\sum_{k,i}|g_{k,i}|+\sum_i|g_{0,i}| .
+\]
+\begin{enumerate}
+\item Every power of $\mathrm{size}$ is $P$-integrable.
+\item For every $k$ there is $A_k$ with $\langle(1+\|\sigma\|)^k\rangle_t\le A_k\,\mathrm{size}^k$ for all
+$t\in[0,1]$ and all values of the disorder.
+\item If $f$ is a measurable replica observable of polynomial growth, then the quenched average
+$\nu_t(f)=\mathbb E\langle f\rangle_t$ is finite and $t\mapsto\nu_t(f)$ is continuous on the closed interval
+$[0,1]$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-confined, lem:sg-tal:st-replica-second}
+\emph{Step 1 (integrability of the disorder).} Each coordinate of $(y,g,g_0)$ is Gaussian, so (1) follows from
+the finiteness of the Gaussian moments.
+
+\emph{Step 2 (confinement).} Uniformly in $t\in[0,1]$,
+\[
+-H_t(\sigma)\le\Bigl(|h|\sum_i|g_{0,i}|+|y|\Bigr)\|\sigma\|-\kappa\|\sigma\|^2,
+\]
+and on the unit ball $-H_t$ is bounded below by minus a constant multiple of $\mathrm{size}$. Together with
+Lemma~\ref{lem:sg-tal:st-replica-second}(2) this gives (2), and then
+\[
+|\langle f\rangle_t|\le A\,\mathrm{size}^{d}
+\]
+for suitable $A$ and $d$, which is integrable by Step~1.
+
+\emph{Step 3 (continuity).} For fixed disorder, $\langle f\rangle_t$ is a quotient of two integrals whose
+integrands are continuous in $t$ and dominated, by Step~2, by polynomials times
+$\prod_\ell e^{B\|\sigma^\ell\|-\kappa\|\sigma^\ell\|^2}$ with $B=|h|\sum_i|g_{0,i}|+|y|$; the denominator is
+positive. Dominated convergence, first in $\sigma$ and then in the disorder with the bound of Step~2, gives (3).
+Formalized in \texttt{CavityDerivative}.
+\end{proof}
+
 \begin{lemma}[The auxiliary cavity path and its $v=0$ factorization]\label{lem:sg-tal:st-aux-cavity}
   \lean{SpinGlasses.integral_pi_tilted_prod_gaussian_zero_observable,
         SpinGlasses.integral_pi_tilted_prod_gaussian_zero_deriv_mul,
@@ -1101,6 +1155,8 @@ Terms~IV and~V into $-\bar r\,\mathbb E[D(\varepsilon^2)/2]$.
         SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_mul,
         SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_two,
         SpinGlasses.integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed,
+        SpinGlasses.integral_pi_tilted_prod_gaussianReal_eq_smoothed,
+        SpinGlasses.integral_shcherbinaTirozziAuxCavity_eq_smoothed,
         ProbabilityTheory.concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal}
   \leanok
   \uses{def:sg-tal:st-cavity, lem:sg-tal:st-marginal, lem:sg-tal:st-smoothing}
@@ -1125,7 +1181,8 @@ state space.
 average at $(t,v)$ as the replica average for $-H_{M,t}(\sigma)+u_v(\sqrt v\,S_{M+1,t}(\sigma)+\sqrt{1-v}\sqrt q\,z)$,
 where $u_v(x)=\log\mathbb E_\xi\exp u(x+\sqrt{1-v}\sqrt{\rho-q}\,\xi)$ is concave, nonpositive, differentiable
 with $|u_v'|\le D$, and satisfies $u_v(x)\ge-(|u(0)|+D(1+|\sqrt{1-v}\sqrt{\rho-q}|))(1+|x|)$ when $u\le0$ is
-concave with $|u'|\le D$ and $|u''|\le D_2$.
+concave with $|u'|\le D$ and $|u''|\le D_2$. The same identity holds for the one-replica average, and it is
+an instance of an identity over an arbitrary $\sigma$-finite state space.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -1211,7 +1268,9 @@ name with suffix \texttt{Bound}.
 \end{proof}
 
 \begin{lemma}[Derivative along the auxiliary cavity path]\label{lem:sg-tal:st-aux-derivative}
-  \lean{SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le}
+  \lean{SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le,
+        SpinGlasses.continuousOn_shcherbinaTirozziAuxCavity,
+        SpinGlasses.integrable_shcherbinaTirozziAuxCavity_shared}
   \leanok
   \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-sqrt-path}
 \talsource{Lemma~3.2.8, Eq.~(3.96)}
@@ -1227,6 +1286,9 @@ R^t_{a,b}=\frac1{N+1}\Bigl(\sum_{i\le N}\sigma^a_i\sigma^b_i+t\,\sigma^a_{N+1}\s
 \]
 where $a,b$ run over $R$ and two further replicas and $B$ is as in Lemma~\ref{lem:sg-tal:st-sqrt-path}.
 The constant does not depend on $N$, $M$, $\kappa$, $h$ or $t$.
+Moreover this quantity is continuous in $v$ on the closed interval $[0,1]$ (for which it is enough that $u'$ and
+the $\psi_l$ are bounded and the $\psi_l$ continuous), and for each $v$ the Gibbs average is integrable jointly in
+the disorder and in the Gaussian variables $(g_{M+1,\cdot},z)$.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1310,7 +1372,9 @@ Formalized in \texttt{SecondMoment}.
 \end{proof}
 
 \begin{lemma}[Exponential moments and overlap tails along $\nu_{t,v}$]\label{lem:sg-tal:st-aux-tails}
-  \lean{SpinGlasses.integral_shcherbinaTirozziAuxCavity_eq_shared,
+  \lean{SpinGlasses.measurePreserving_auxDisorder_to_shared,
+        SpinGlasses.shcherbinaTirozziAuxCavity_state_properties,
+        SpinGlasses.integral_shcherbinaTirozziAuxCavity_eq_shared,
         SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le,
         SpinGlasses.exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp,
         SpinGlasses.exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp,
@@ -1345,6 +1409,14 @@ such that for any replicas $a,b$ and $\Delta=|R_{a,b}-(\rho\,\mathbf 1_{a=b}+q\,
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
+\emph{Step 0 (two descriptions of the disorder).} The map sending (disorder with $M+1$ rows, $z$) to
+$(\text{disorder with the first }M\text{ rows},\ (g_{M+1,\cdot},z))$ preserves the Gaussian laws, which moves
+averages between the two descriptions. For $1/K<\kappa$ the auxiliary state is a probability measure with
+\[
+\int e^{\|\sigma\|^2/K}\,dG<\infty,
+\]
+and its replica averages are measurable in the disorder.
+
 \emph{Step 1 (Eq.~(3.100)).} By Eq.~(3.99) the one-replica marginal is the cavity Gibbs measure with
 $M+1$ potentials, the last being $x\mapsto u_v(\sqrt v\,x+\sqrt{1-v}\sqrt q\,z)$, which is concave, $\le0$,
 and has $|u_v'|\le D$. Applying the indexed version of Theorem~\ref{thm:sg-tal:st-last-spin-tail} at each
@@ -1490,37 +1562,212 @@ $0\le q\le\rho\le Q$ allows arbitrary centers in the derivative estimate.
 The condition $-D\le u(0)$ is Eq.~(3.6) at the origin.
 \end{remark}
 
+\begin{lemma}[Quenched bounds along the cavity path]\label{lem:sg-tal:st-cavity-quenched}
+  \lean{integral_exp_half_sq_norm_tilted_le_two_rpow,
+        SpinGlasses.exists_integral_exp_half_sq_norm_shcherbinaTirozziCavity_le_exp,
+        SpinGlasses.exists_integral_sq_norm_pow_shcherbinaTirozziCavity_le,
+        ProbabilityTheory.integral_prod_inner_sub_mean_pow_le,
+        SpinGlasses.exists_integral_shcherbinaTirozziCavity_overlap_sub_mean_pow_le,
+        SpinGlasses.exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_mean_pow_le}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic, lem:sg-tal:st-exp-moment, thm:sg-tal:st-maurey,
+        thm:sg-tal:st-gibbs-overlaps}
+\talsource{Eqs.~(3.26)--(3.43), along the path of Eq.~(3.61)}
+Let $\kappa_0>0$ and $h_0,D,R_{\mathrm{diff}}\ge0$. Let $\kappa\ge\kappa_0$, $|h|\le h_0$, $t\in[0,1]$,
+$\bar r\le r$, $r-\bar r\le R_{\mathrm{diff}}$, $M\le10(N+1)$, and let $u\le0$ be measurable with
+$u(x)\ge-D(1+|x|)$. For one value $(y,g,g_0)$ of the disorder, write $\langle\cdot\rangle_t$ for the cavity
+Gibbs average on $\mathbb R^{N+1}$ and put
+\[
+B_{\mathrm c}=(N+1)+\Bigl(\sum_{k,i}g_{k,i}^2\Bigr)^{1/2}+\sum_ig_{0,i}^2+y^2 .
+\]
+There is $K$, depending only on $\kappa_0,h_0,D,R_{\mathrm{diff}}$, such that:
+\begin{enumerate}
+\item $\langle e^{\kappa\|\sigma\|^2/2}\rangle_t\le e^{KB_{\mathrm c}}$;
+\item $\langle\|\sigma\|^{2k}\rangle_t\le(KB_{\mathrm c})^k$ for $k\le4(N+1)$;
+\item if moreover $u$ is concave and $k\le N+1$, then for $R=R_{1,2}$ (two replicas) and for $R=R_{1,1}$
+\[
+\bigl\langle(R-\langle R\rangle_t)^{2k}\bigr\rangle_t\le\Bigl(\frac{KkB_{\mathrm c}}{(N+1)^2}\Bigr)^k .
+\]
+\end{enumerate}
+All the integrals converge.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic, lem:sg-tal:st-exp-moment, thm:sg-tal:st-maurey,
+        thm:sg-tal:st-gibbs-overlaps}
+Write $v_k=(N+1)^{-1/2}(g_{1,k},\dots,g_{N,k},\sqrt t\,g_{N+1,k})$ for $k\le M$,
+$a=hg_0+\sqrt{1-t}\,y\,e_{N+1}$ with $e_{N+1}$ the last basis vector, $z$ for a standard Gaussian vector of
+$\mathbb R^{N+1}$, and $c=(2\kappa)^{-1/2}$.
+
+\emph{Step 1 (normal form).} Definition~\ref{def:sg-tal:st-cavity} reads
+\[
+-H_t(\sigma)=U(\sigma)-\kappa\|\sigma\|^2+\langle a,\sigma\rangle,\qquad
+U(\sigma)=\sum_{k\le M}u(\langle v_k,\sigma\rangle)-(1-t)(r-\bar r)\frac{\sigma_{N+1}^2}2\le0 .
+\]
+
+\emph{Step 2 (exponential moment).} The Gaussian domination bound of Lemma~\ref{lem:sg-tal:st-quadratic},
+with Jensen's inequality for the normalizing integral, gives
+\[
+\langle e^{\kappa\|\sigma\|^2/2}\rangle_t\le2^{(N+1)/2}
+\exp\Bigl(\frac{\|a\|^2}{2\kappa}-\mathbb E\,U(cz)\Bigr).
+\]
+
+\emph{Step 3 (the two exponents).} By $u(x)\ge-D(1+|x|)$, $\mathbb E|\langle v_k,z\rangle|\le\|v_k\|$,
+Cauchy--Schwarz in $k$ and $M\le10(N+1)$,
+\begin{align*}
+\|a\|^2&\le2\bigl(h^2\|g_0\|^2+y^2\bigr),\\
+-\mathbb E\,U(cz)&\le D\Bigl(M+c\sum_{k\le M}\|v_k\|\Bigr)+\frac{(1-t)(r-\bar r)}{4\kappa},\qquad
+\sum_{k\le M}\|v_k\|\le\Bigl(10\sum_{k,i}g_{k,i}^2\Bigr)^{1/2}.
+\end{align*}
+Every term on the right is at most a constant times $B_{\mathrm c}$, which gives (1).
+
+\emph{Step 4 (moments).} Apply Lemma~\ref{lem:sg-tal:st-exp-moment} to $X=\kappa\|\sigma\|^2/2$ and use (1);
+the range $k\le4(N+1)\le4B_{\mathrm c}$ gives (2).
+
+\emph{Step 5 (overlap of two replicas).} Theorem~\ref{thm:sg-tal:st-maurey} applies to the cavity Gibbs measure,
+so for every $A$-Lipschitz $F$
+\[
+\bigl\langle(F-\langle F\rangle_t)^{2k}\bigr\rangle_t\le4\Bigl(\frac{8kA^2}\kappa\Bigr)^k .
+\]
+Use it for the linear functions $F(\sigma)=\langle b,\sigma\rangle/(N+1)$, with $A=\|b\|/(N+1)$. Conditioning
+successively on each replica, as in Theorem~\ref{thm:sg-tal:st-gibbs-overlaps}, and using (2) for $\|b\|$ gives
+\[
+\bigl\langle(R_{1,2}-\langle R_{1,2}\rangle_t)^{2k}\bigr\rangle_t
+\le\Bigl(\frac{128\,kK_{(2)}B_{\mathrm c}}{(N+1)^2\kappa}\Bigr)^k,
+\]
+where $K_{(2)}$ is the constant of (2).
+
+\emph{Step 6 (self-overlap).} Repeat the truncation of Theorem~\ref{thm:sg-tal:st-gibbs-overlaps}, with $N+1$
+spins and $B_{\mathrm c}$ in place of $B^*$:
+\[
+a_{\mathrm c}=\Bigl(\frac{2(K_{(1)}+2)B_{\mathrm c}}\kappa\Bigr)^{1/2},\qquad
+f(\sigma)=\frac{\min(\|\sigma\|,a_{\mathrm c})^2}{N+1},
+\]
+where $K_{(1)}$ is the constant of (1). The function $f$ is $2a_{\mathrm c}/(N+1)$-Lipschitz, so Maurey applies,
+and $R_{1,1}-f$ vanishes unless $\|\sigma\|\ge a_{\mathrm c}$, an event whose probability is exponentially small
+in $B_{\mathrm c}$ by (1).
+Formalized in \texttt{CavityOverlapConcentration}.
+\end{proof}
+
+\begin{lemma}[Dependence of the quenched overlaps on the disorder]\label{lem:sg-tal:st-cavity-gradient}
+  \lean{SpinGlasses.exists_hasDerivAt_integral_shcherbinaTirozziCavity_selfOverlap_line,
+        SpinGlasses.exists_hasDerivAt_integral_shcherbinaTirozziCavity_overlap_line}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-quenched, lem:sg-tal:st-gradient, lem:sg-tal:st-differentiation}
+\talsource{Proposition~3.1.16, along the path of Eq.~(3.61)}
+In the setting of Lemma~\ref{lem:sg-tal:st-cavity-quenched}, let $u$ be concave and differentiable with
+$|u'|\le D$ and $u'$ $D$-Lipschitz, and let $m(y,g,g_0)$ be $\langle R_{1,1}\rangle_t$ or
+$\langle R_{1,2}\rangle_t$. Let $\|g\|$ be the operator norm of the matrix $(g_{k,i})$. Along every line
+$s\mapsto(y+s\,\delta y,\,g+s\,\delta g,\,g_0+s\,\delta g_0)$ the derivative $d$ of $m$ at $s=0$ exists, and
+\[
+d^2\le K\Bigl(\frac{B_{\mathrm c}}{(N+1)^2}+\frac{B_{\mathrm c}^2\,\|g\|^2}{(N+1)^4}\Bigr)\Delta^2,\qquad
+\Delta^2=\|\delta g\|^2+\|\delta g_0\|^2+\delta y^2,
+\]
+with $K$ depending only on $\kappa_0,h_0,D,R_{\mathrm{diff}}$, uniformly in $t\in[0,1]$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-quenched, lem:sg-tal:st-gradient, lem:sg-tal:st-differentiation}
+Write $b=\langle\sigma\rangle_t$, and $S_{k,t}(\sigma;\delta g)$ for the field $S_{k,t}$ computed with $\delta g$
+in place of $g$.
+
+\emph{Step 1 (the derivative is a covariance).} The derivative of $-H_t$ along the line is
+\[
+X(\sigma)=\sum_{k\le M}u'(S_{k,t}(\sigma))\,S_{k,t}(\sigma;\delta g)+h\,\langle\delta g_0,\sigma\rangle
++\sqrt{1-t}\,\delta y\,\sigma_{N+1},
+\]
+and Lemma~\ref{lem:sg-tal:st-differentiation} gives $d=\langle fX\rangle_t$ with $\langle f\rangle_t=0$, where
+\[
+f=R_{1,1}-\langle R_{1,1}\rangle_t\qquad\text{or}\qquad f=\frac{2\bigl(\langle b,\sigma\rangle-\|b\|^2\bigr)}{N+1}.
+\]
+
+\emph{Step 2 (covariance bound).} Splitting $\sigma=(\sigma-b)+b$ and using the covariance bounds of
+Lemma~\ref{lem:sg-tal:st-gradient}, which hold for this Gibbs measure by Theorem~\ref{thm:sg-tal:st-maurey},
+\[
+|\langle fX\rangle_t|\le\Bigl(\frac{32\langle f^2\rangle_t}\kappa\Bigr)^{1/2}
+\Bigl(D\sqrt{\tfrac M{N+1}}+|h|+1+\frac{D\,\|g\|\,\|b\|}{N+1}\Bigr)\Delta .
+\]
+
+\emph{Step 3 (insert the moments).} Square, and use $\sqrt{M/(N+1)}\le4$,
+\[
+\langle f^2\rangle_t\le\frac{KB_{\mathrm c}}{(N+1)^2},\qquad\|b\|^2\le KB_{\mathrm c},
+\]
+which follow from Lemma~\ref{lem:sg-tal:st-cavity-quenched}.
+Formalized in \texttt{CavityDisorderConcentration}.
+\end{proof}
+
 \begin{theorem}[Overlap concentration along the cavity path]\label{thm:sg-tal:st-cavity-overlaps}
-  \lean{SpinGlasses.exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le,
+  \lean{ProbabilityTheory.integral_integral_sub_pow_le_of_center,
+        SpinGlasses.exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le,
         SpinGlasses.exists_integral_shcherbinaTirozziCavity_overlap_sub_pow_le}
   \leanok
-  \uses{thm:sg-tal:st-overlaps, lem:sg-tal:st-cavity-regular}
+  \uses{lem:sg-tal:st-cavity-quenched, lem:sg-tal:st-cavity-gradient, lem:sg-tal:st-gaussian-norm,
+        lem:sg-tal:st-convex-set, lem:sg-tal:st-moments}
 \talsource{Eq.~(3.111)}
-Use the cavity Hamiltonian on $N+1$ spins with $M\le 10(N+1)$ constraints.
-Assume the bounds (3.6), (3.7), and (3.25) on the potential and model parameters.
-For fixed upper bounds on $r$ and $r-\bar r$ with $\bar r\le r$, there is a constant $K$
-such that, uniformly in $t\in[0,1]$ and for $4k\le N+1$,
+Let $\kappa_0>0$ and $h_0,D,R,R_{\mathrm{diff}}\ge0$. Let $\kappa\ge\kappa_0$, $|h|\le h_0$, $0\le r\le R$,
+$\bar r\le r$, $r-\bar r\le R_{\mathrm{diff}}$, $M\le10(N+1)$, and let $u\le0$ be concave and differentiable
+with $u(x)\ge-D(1+|x|)$, $|u'|\le D$ and $u'$ $D$-Lipschitz. Let $\nu_t(F)=\mathbb E\langle F\rangle_t$, the
+expectation being over $y\sim\mathcal N(0,r)$ and the standard Gaussian variables $g,g_0$. There is $K$,
+depending only on $\kappa_0,h_0,D,R,R_{\mathrm{diff}}$, such that for all $t\in[0,1]$, $4k\le N+1$ and
+$R_\ast=R_{1,1}$ or $R_{1,2}$,
 \[
-  \nu_t\bigl((R_{a,b}-\nu_t(R_{a,b}))^{2k}\bigr)
-  \le \left(\frac{Kk}{N+1}\right)^k
-  \qquad ((a,b)=(1,1)\ \text{or}\ (1,2)).
+\nu_t\bigl((R_\ast-\nu_t(R_\ast))^{2k}\bigr)\le\Bigl(\frac{Kk}{N+1}\Bigr)^k .
 \]
-Lean uses a Lipschitz bound on $u'$ in place of a second derivative bound.
 \end{theorem}
 \begin{proof}
   \leanok
-  \uses{thm:sg-tal:st-overlaps, lem:sg-tal:st-cavity-regular}
-For fixed disorder, apply log-concave concentration to the truncated overlaps. Use
-the norm moment bound to control the truncation error. Bound the change in the Gibbs
-mean as a function of disorder on the set where the Gaussian norm bounds hold, and
-use moment bounds on its complement. Combine the two estimates by writing
+  \uses{lem:sg-tal:st-cavity-quenched, lem:sg-tal:st-cavity-gradient, lem:sg-tal:st-gaussian-norm,
+        lem:sg-tal:st-convex-set, lem:sg-tal:st-moments}
+Write $m=\langle R_\ast\rangle_t$.
+
+\emph{Step 1 (standard variables).} Put $y=\sqrt r\,y_1$, so that $\omega=(y_1,g,g_0)$ is a standard Gaussian
+vector with law $\gamma$, and let $B_1$ be $B_{\mathrm c}$ computed with $y_1$ in place of $y$. Then
 \[
-  R_{a,b}-\nu_t(R_{a,b})
-    = (R_{a,b}-\langle R_{a,b}\rangle_t)
-      +(\langle R_{a,b}\rangle_t-\nu_t(R_{a,b})).
+B_{\mathrm c}\le(1+R)\,B_1 .
 \]
-The estimates on both terms are uniform in $t$.
+The case $r=0$ needs no separate argument.
+
+\emph{Step 2 (a good convex set).} Let $C=\{B_1\le768(N+1),\ \|g\|\le\sqrt{768(N+1)}\}$. It is convex, and
+the estimates of Lemma~\ref{lem:sg-tal:st-moments} and Lemma~\ref{lem:sg-tal:st-gaussian-norm} give
+\[
+\gamma(C^c)\le3e^{-2(N+1)} .
+\]
+
+\emph{Step 3 (the mean is Lipschitz on $C$).} Integrating Lemma~\ref{lem:sg-tal:st-cavity-gradient} along
+segments of $C$,
+\[
+|m(\omega)-m(\omega')|\le\Bigl(\frac K{N+1}\Bigr)^{1/2}\|\omega-\omega'\|\quad(\omega,\omega'\in C),\qquad
+|m|\le\frac{KB_1}{N+1}\quad\text{everywhere}.
+\]
+
+\emph{Step 4 (fluctuations of the mean).} Lemma~\ref{lem:sg-tal:st-convex-set}, applied with the moments of $B_1$
+and followed by recentring at the expectation, gives for $4k\le N+1$
+\[
+\mathbb E\bigl(m-\mathbb Em\bigr)^{2k}\le\Bigl(\frac{Kk}{N+1}\Bigr)^k .
+\]
+
+\emph{Step 5 (fluctuations under the Gibbs measure).} Lemma~\ref{lem:sg-tal:st-cavity-quenched}(3), Step~1 and
+$\mathbb EB_1^k\le(K(N+1))^k$ give
+\[
+\mathbb E\bigl\langle(R_\ast-m)^{2k}\bigr\rangle_t\le\Bigl(\frac{Kk}{N+1}\Bigr)^k .
+\]
+
+\emph{Step 6 (combination).} Since $\nu_t(R_\ast)=\mathbb Em$, convexity of $x\mapsto x^{2k}$ applied to
+\[
+R_\ast-\nu_t(R_\ast)=(R_\ast-m)+(m-\mathbb Em)
+\]
+adds Steps~4 and~5.
+Formalized in \texttt{CavityConcentration}.
 \end{proof}
+
+\begin{remark}[Differences for Eq.~(3.111)]\label{rem:sg-tal:st-eq-3111}
+\talsource{Eq.~(3.111), Theorem~3.1.18}
+The book obtains (3.111) by observing that the proof of Theorem~3.1.18 holds uniformly over the functionals
+$\nu_t$, and writes the case $k=2$; the statement above keeps every $k$ with $4k\le N+1$. A Lipschitz bound on
+$u'$ replaces $|u''|\le D$ in (3.7). The parameters $r,\bar r$ are arbitrary within the stated bounds, which the
+book gets from the choice (3.69), and $h$ may have either sign. The auxiliary variable $y$ is part of the
+disorder and is concentrated together with $g$ and $g_0$.
+\end{remark}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
@@ -1530,6 +1777,158 @@ $N\to\infty$ with $M/N\to\alpha$, the limit of
 \frac1N\,\mathbb E\log\int e^{-H_{N,M}(\sigma)}\,d\sigma .
 \]
 It is an open problem in the book and has no Lean statement.
+\end{remark}
+
+\begin{theorem}[Lemma~3.2.11 at rate $(N+1)^{-1/2}$]\label{thm:sg-tal:st-lemma-3211}
+  \lean{SpinGlasses.exists_abs_shcherbinaTirozziCavity_selfOverlap_sub_le,
+        SpinGlasses.exists_abs_shcherbinaTirozziCavity_overlap_sub_le}
+  \leanok
+  \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
+        thm:sg-tal:st-cavity-overlaps}
+\talsource{Lemma~3.2.11, Eq.~(3.112)}
+In the setting of Theorem~\ref{thm:sg-tal:st-cavity-overlaps}, let moreover $N+1\ge4$ and let $u$ be twice
+differentiable with $|u''|\le D$. Put $\rho_t=\nu_t(R_{1,1})$ and $q_t=\nu_t(R_{1,2})$. There is $K$, depending
+only on $\kappa_0,h_0,D,R,R_{\mathrm{diff}}$, such that for all $t\in[0,1]$
+\[
+|\rho_t-\rho_1|\le\frac K{\sqrt{N+1}},\qquad|q_t-q_1|\le\frac K{\sqrt{N+1}} .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
+        thm:sg-tal:st-cavity-overlaps}
+Write $G_t$ for the cavity Gibbs measure, $\varepsilon=\sigma_{N+1}$, $n$ for the number of replicas, and
+$D(\cdot),\mathcal P(\cdot)$ for the two replica combinations of
+Theorem~\ref{thm:sg-tal:st-cavity-derivative} applied to $f-c$, where $c$ is a constant.
+
+\emph{Step 1 (constants drop out of the derivative).} Since $\nu_s(f-c)=\nu_s(f)-c$ for $s\in(0,1)$,
+\[
+\frac d{dt}\nu_t(f)=\frac d{dt}\nu_t(f-c),
+\]
+so Theorem~\ref{thm:sg-tal:st-cavity-derivative} may be applied to $f-c$.
+
+\emph{Step 2 (each term, one disorder).} Independence of the further replicas and Cauchy--Schwarz give, if
+$|w(\sigma)|\le B\varepsilon^2$, respectively $|v(\sigma)|\le B|\varepsilon|$,
+\begin{align*}
+|D(w)|&\le2nB\,\bigl\langle(f-c)^2\bigr\rangle_t^{1/2}\langle\varepsilon^4\rangle_t^{1/2},\\
+|\mathcal P(v\otimes v)|&\le3(n+1)^2B^2\bigl\langle(f-c)^2\bigr\rangle_t^{1/2}
+  \langle\varepsilon^4\rangle_t^{1/2}.
+\end{align*}
+These apply to $V_k$ with $B=D+D^2$, to $U_k$ with $B=D$, and to $\varepsilon^2$ and $\varepsilon$ with $B=1$.
+
+\emph{Step 3 (average over the disorder).} Theorem~\ref{thm:sg-tal:st-last-spin-tail} gives
+$\nu_t(e^{\varepsilon^2/K_\ast})\le K_\ast$, hence $\nu_t(\varepsilon^4)\le2K_\ast^3$. If
+$\nu_t((f-c)^2)\le A^2$, Cauchy--Schwarz over the disorder yields
+\[
+\mathbb E\Bigl[\bigl\langle(f-c)^2\bigr\rangle_t^{1/2}\langle\varepsilon^4\rangle_t^{1/2}\Bigr]
+\le A\,(2K_\ast^3)^{1/2}.
+\]
+
+\emph{Step 4 (the derivative).} Using $M/(N+1)\le10$, $r\le R$ and $|\bar r|\le R+R_{\mathrm{diff}}$ in the sum
+of the terms,
+\[
+\Bigl|\frac d{dt}\nu_t(f)\Bigr|\le\bigl[10\bigl(n(D+D^2)+3(n+1)^2D^2\bigr)+3(n+1)^2R
++n(R+R_{\mathrm{diff}})\bigr](2K_\ast^3)^{1/2}A .
+\]
+
+\emph{Step 5 (the overlaps).} Take $f=R_{1,1}$ ($n=1$) or $f=R_{1,2}$ ($n=2$) and $c=\nu_s(f)$.
+Theorem~\ref{thm:sg-tal:st-cavity-overlaps} with $k=1$ (this uses $N+1\ge4$) allows
+$A^2=K/(N+1)$, so that for all $s\in(0,1)$
+\[
+\Bigl|\frac d{ds}\nu_s(f)\Bigr|\le\frac{K'}{\sqrt{N+1}} .
+\]
+Now apply the mean value theorem between $t$ and $1$, using the continuity of $s\mapsto\nu_s(f)$ on $[0,1]$
+(Lemma~\ref{lem:sg-tal:st-cavity-moments}).
+Formalized in \texttt{RSAccuracy}.
+\end{proof}
+
+\begin{theorem}[Proposition~3.2.12: the replica-symmetric equations]\label{thm:sg-tal:st-rs-accuracy}
+  \lean{SpinGlasses.exists_shcherbinaTirozzi_rsEquations_accuracy}
+  \leanok
+  \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
+        thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
+\talsource{Proposition~3.2.12, Eq.~(3.115), combined with Proposition~3.2.4}
+Let $\kappa_0>0$ and $h_0,D$ be real. There is $K>0$, depending only on $\kappa_0,h_0,D$, with the following
+property. Take $N+1\ge4$ spins, $M\le10(N+1)$ constraints, $\kappa\ge\kappa_0$, $|h|\le h_0$, and $u\le0$
+concave, four times differentiable with $|u^{(l)}|\le D$ for $1\le l\le4$, and $u(x)\ge-D(1+|x|)$. Let
+$\langle\cdot\rangle$ be the Gibbs average of the model, and define
+\[
+\rho=\mathbb E\Bigl\langle\frac{\|\sigma\|^2}{N+1}\Bigr\rangle,\qquad
+q=\mathbb E\,\frac{\|\langle\sigma\rangle\|^2}{N+1},\qquad\alpha=\frac M{N+1} .
+\]
+Let $r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and $\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$ be the parameters (3.69) at
+the scale $\sqrt{\rho-q}$ (Lemma~\ref{lem:sg-tal:st-rs-parameters}) and $a=2\kappa+r-\bar r$. Then $a>0$ and
+\[
+\Bigl|\rho-\Bigl(\frac1a+\frac{r+h^2}{a^2}\Bigr)\Bigr|\le\frac K{\sqrt{N+1}},\qquad
+\Bigl|q-\frac{r+h^2}{a^2}\Bigr|\le\frac K{\sqrt{N+1}} .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
+        thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
+Use the cavity path with these $r,\bar r$, and write $\varepsilon=\sigma_{N+1}$.
+
+\emph{Step 1 (parameter bounds).} Lemma~\ref{lem:sg-tal:st-rs-parameters} with $D_2=D$ gives $Q$, depending only
+on $\kappa_0,h_0,D$, such that
+\[
+0\le q\le\rho\le Q,\qquad0\le r\le10D^2,\qquad\bar r\le r,\qquad r-\bar r\le10(2D^2+D).
+\]
+
+\emph{Step 2 (the errors are increments along the path).} By
+Theorem~\ref{thm:sg-tal:st-rs-choice}(2), $a>0$ and
+\[
+\rho-\Bigl(\frac1a+\frac{r+h^2}{a^2}\Bigr)=\nu_1(\varepsilon^2)-\nu_0(\varepsilon^2),\qquad
+q-\frac{r+h^2}{a^2}=\nu_1(\varepsilon_1\varepsilon_2)-\nu_0(\varepsilon_1\varepsilon_2).
+\]
+If $M=0$, then $r=\bar r=0$, the variable $y$ vanishes, and the Gibbs measures at $t=0$ and $t=1$ coincide;
+both differences are $0$. Assume $M\ge1$.
+
+\emph{Step 3 (derivative).} Proposition~\ref{prop:sg-tal:st-last-spin-deriv}, applied with $M-1$ old constraints
+and one further constraint, gives for $f=\varepsilon_1^2$ or $\varepsilon_1\varepsilon_2$ and $t\in(0,1)$
+\[
+\Bigl|\frac d{dt}\nu_t(f)\Bigr|\le K_1E(t),\qquad
+E(t)=\nu_t\bigl((R_{1,2}-q)^2\bigr)^{1/2}+\nu_t\bigl((R_{1,1}-\rho)^2\bigr)^{1/2}+\frac1{N+1}.
+\]
+
+\emph{Step 4 (the error term).} At $t=1$ the cavity measure is the Gibbs measure of the model, so
+$\rho_1=\rho$ and $q_1=q$. For $(R_\ast,c)=(R_{1,1},\rho)$ or $(R_{1,2},q)$,
+\[
+\nu_t\bigl((R_\ast-c)^2\bigr)\le2\,\nu_t\bigl((R_\ast-\nu_t(R_\ast))^2\bigr)
++2\,\bigl(\nu_t(R_\ast)-\nu_1(R_\ast)\bigr)^2 .
+\]
+Theorem~\ref{thm:sg-tal:st-cavity-overlaps} with $k=1$ bounds the first term by $K/(N+1)$, and
+Theorem~\ref{thm:sg-tal:st-lemma-3211} bounds the second by $K/(N+1)$. Hence $E(t)\le K_2/\sqrt{N+1}$.
+
+\emph{Step 5 (conclusion).} By Steps~3 and~4 and the continuity of $t\mapsto\nu_t(f)$ on $[0,1]$
+(Lemma~\ref{lem:sg-tal:st-cavity-moments}), the mean value theorem gives
+\[
+|\nu_1(f)-\nu_0(f)|\le\frac{K_1K_2}{\sqrt{N+1}} .
+\]
+Formalized in \texttt{RSAccuracy}.
+\end{proof}
+
+\begin{remark}[Hypotheses and differences for Lemma~3.2.11 and Proposition~3.2.12]
+\label{rem:sg-tal:st-prop-3212}
+\talsource{Lemma~3.2.11, Proposition~3.2.12, Theorem~3.2.14}
+\emph{The book's hypotheses} are $u\le0$ concave (3.2), $u(x)\ge-D(1+|x|)$ (3.6), $|u^{(l)}|\le D$ for
+$1\le l\le4$ (3.95), and $\kappa\ge\kappa_0$, $h\le h_0$, $M\le10N$ (3.25), with $h\ge0$.
+
+\emph{Differences.} The system has $N+1$ spins, and $h$ may have either sign. The condition $N+1\ge4$ is the
+range $k\le N/4$ of Theorem~3.1.18 at $k=1$. Theorem~\ref{thm:sg-tal:st-lemma-3211} uses only two derivatives
+of $u$ and allows any $r,\bar r$ within the stated bounds; the comparison is with the value at $t=1$, which does
+not depend on $r,\bar r$. Proposition~\ref{prop:sg-tal:st-last-spin-deriv} and
+Theorem~\ref{thm:sg-tal:st-rs-accuracy} use all four derivatives. No bound on $q,\rho,r,\bar r$ is assumed in
+Theorem~\ref{thm:sg-tal:st-rs-accuracy}: they are proved. The conclusion is stated directly as the accuracy of
+the equations (3.69), (3.76) and (3.77), which by Proposition~3.2.4 is the content of (3.115).
+
+\emph{Not formalized.} Lemma~3.2.11 is printed with the rate $K/N$; only the rate $K/\sqrt{N+1}$, which the
+book's proof obtains first and which suffices for Proposition~3.2.12, is proved. Theorem~3.2.14 (the rate $K/N$
+in (3.115)), whose proof the book only sketches, is not formalized. Neither is the consequence drawn after
+(3.115) that the system has a solution, obtained by letting $N\to\infty$.
+
+\emph{Printed corrections.} In the proof of Lemma~3.2.11, the bound on $R_{1,2}-q_t$ cited as (3.112) is (3.111).
+After (3.115), the equations cited as (3.69), (3.76) and (3.104) are (3.69), (3.76) and (3.77).
 \end{remark}
 
 \section{Replica-symmetric solutions (Talagrand Section~3.3)}
