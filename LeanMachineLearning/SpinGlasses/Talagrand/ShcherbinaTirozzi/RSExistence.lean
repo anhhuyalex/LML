@@ -45,12 +45,12 @@ and second derivatives `|u'| ≤ D`, `|u''| ≤ D₂`, the maps `(α, q, ρ) ↦
 theorem continuous_shcherbinaTirozzi_rsParameters {u : ℝ → ℝ} (hu : Continuous u)
     (hu0 : ∀ x, u x ≤ 0) (hu1c : Continuous (deriv u)) (hu2c : Continuous (deriv (deriv u)))
     {D D₂ : ℝ} (hD : ∀ x, |deriv u x| ≤ D) (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) :
-    let Z : ℝ → ℝ → ℝ := fun q ρ y =>
+    let Z : ℝ → ℝ → ℝ → ℝ := fun q ρ y =>
       ∫ ξ, Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)
-    let V : ℝ → ℝ → ℝ := fun q ρ y =>
+    let V : ℝ → ℝ → ℝ → ℝ := fun q ρ y =>
       (∫ ξ, deriv u (y + Real.sqrt (ρ - q) * ξ) *
         Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) / Z q ρ y
-    let W : ℝ → ℝ → ℝ := fun q ρ y =>
+    let W : ℝ → ℝ → ℝ → ℝ := fun q ρ y =>
       (∫ ξ, (deriv (deriv u) (y + Real.sqrt (ρ - q) * ξ) +
           deriv u (y + Real.sqrt (ρ - q) * ξ) ^ 2) *
         Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) / Z q ρ y
@@ -75,7 +75,7 @@ theorem continuous_shcherbinaTirozzi_rsParameters {u : ℝ → ℝ} (hu : Contin
         rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) ht 2
   have hW_cont : Continuous fun p : ℝ × ℝ × ℝ =>
       ∫ z, W p.2.1 p.2.2 (Real.sqrt p.2.1 * z) ∂(gaussianReal 0 1) := by
-    simpa only [W, Z] using continuous_integral_comp_ratio_of_isFiniteMeasure
+    simpa only [W, Z, id_eq] using continuous_integral_comp_ratio_of_isFiniteMeasure
       (ν := gaussianReal 0 1) (μ := gaussianReal 0 1)
       (arg := fun p : ℝ × ℝ × ℝ => fun z ξ => Real.sqrt p.2.1 * z + Real.sqrt (p.2.2 - p.2.1) * ξ)
       (f := fun x => deriv (deriv u) x + deriv u x ^ 2) (u := u) (φ := id)
@@ -137,6 +137,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_subseq_limit
   obtain ⟨K, hK0, hacc⟩ := exists_shcherbinaTirozzi_rsEquations_accuracy κ₀ h₀ D hκ₀
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD1 0)
   have hκ₁ : κ₀ ≤ κ₁ := (hκ_bd 0).1.trans (hκ_bd 0).2
+  have hκ₁_pos : 0 < κ₁ := hκ₀.trans_le hκ₁
   have hh₀ : 0 ≤ h₀ := (abs_nonneg _).trans (hh_bd 0)
   let α : ℕ → ℝ := fun k => (M k : ℝ) / ((N k : ℝ) + 1)
   let q : ℕ → ℝ := fun k => q_fn (N k) (M k) (κ k) (h k)
@@ -167,23 +168,19 @@ theorem exists_shcherbinaTirozzi_rsEquations_subseq_limit
     exact ⟨hq0, hqρ, hρQ, hdiff⟩
   have hres : ∀ k, 0 < a_k k ∧
       |ρ k - ((a_k k)⁻¹ + (r_k k + h k ^ 2) / a_k k ^ 2)| ≤ K / Real.sqrt ((N k : ℝ) + 1) ∧
-      |q k - (r_k k + h k ^ 2) / a_k k ^ 2| ≤ K / Real.sqrt ((N k : ℝ) + 1) := fun k =>
-    hacc (N k) (M k) (κ k) (h k) u (hκ_bd k).1 (hh_bd k) (hM_bd k) huc hu0 hgrow
-      hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4
+      |q k - (r_k k + h k ^ 2) / a_k k ^ 2| ≤ K / Real.sqrt ((N k : ℝ) + 1) := fun k => by
+    obtain ⟨ha0, hρr, hqr⟩ := hacc (N k) (M k) (κ k) (h k) u (hκ_bd k).1 (hh_bd k) (hM_bd k)
+      huc hu0 hgrow hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4
+    exact ⟨ha0, hρr, hqr⟩
   let U : ℝ := 2 * κ₁ + 10 * (2 * D ^ 2 + D)
   have hU_pos : 0 < U := by positivity
   have ha_bounds : ∀ k, 2 * κ₀ ≤ a_k k ∧ a_k k ≤ U := fun k => by
-    have hrr := (hbd k).2.2.2
-    have h_a_lo : 2 * κ₀ ≤ a_k k := (hres k).1.le.trans' (by
-      have := (hphys (N k) (M k) (κ k) (h k) D u (hκ_bd k).1 (hh_bd k) (hM_bd k)
-        huc hu0 hgrow hu1 hu2 hD1 hD2).2.2.2.2.2.1
-      dsimp only [a_k, r_k, rBar_k, α, V_k, W_k, q, ρ, q_fn, ρ_fn, G_fn, P_fn] at *
-      linarith [(hκ_bd k).1])
+    obtain ⟨-, -, hrr, -⟩ := shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD1 hD2
+      (hα_nonneg k) (q k) (Real.sqrt (ρ k - q k))
+    have hrr' : rBar_k k ≤ r_k k := hrr
+    have hdiff := (hbd k).2.2.2
     refine ⟨?_, ?_⟩
-    · have := (hphys (N k) (M k) (κ k) (h k) D u (hκ_bd k).1 (hh_bd k) (hM_bd k)
-        huc hu0 hgrow hu1 hu2 hD1 hD2).2.2.2.2.2.1
-      dsimp only [a_k, r_k, rBar_k, α, V_k, W_k, q, ρ, q_fn, ρ_fn, G_fn, P_fn] at *
-      linarith [(hκ_bd k).1]
+    · dsimp only [a_k]; linarith [(hκ_bd k).1]
     · dsimp only [a_k, U]; linarith [(hκ_bd k).2]
   -- Extract a converging subsequence in the compact box `[0, α₀] × [κ₀, κ₁] × [-h₀, h₀] × [0, Q]²`
   set K_box : Set ((ℝ × ℝ × ℝ) × (ℝ × ℝ)) :=
@@ -220,15 +217,20 @@ theorem exists_shcherbinaTirozzi_rsEquations_subseq_limit
     refine le_of_tendsto_of_tendsto' hlo (hρ_l.sub hq_l) fun k => ?_
     have ha_inv : U⁻¹ ≤ (a_k (φ k))⁻¹ :=
       inv_anti₀ (by linarith [(ha_bounds (φ k)).1]) (ha_bounds (φ k)).2
-    have h1 := (abs_le.1 (hres (φ k)).2.1).1
-    have h2 := (abs_le.1 (hres (φ k)).2.2).2
+    have h1 : -(K / Real.sqrt ((N (φ k) : ℝ) + 1)) ≤
+        ρ (φ k) - ((a_k (φ k))⁻¹ + (r_k (φ k) + h (φ k) ^ 2) / a_k (φ k) ^ 2) :=
+      (abs_le.1 (hres (φ k)).2.1).1
+    have h2 : q (φ k) - (r_k (φ k) + h (φ k) ^ 2) / a_k (φ k) ^ 2 ≤
+        K / Real.sqrt ((N (φ k) : ℝ) + 1) :=
+      (abs_le.1 (hres (φ k)).2.2).2
+    change U⁻¹ - 2 * (K / Real.sqrt ((N (φ k) : ℝ) + 1)) ≤ ρ (φ k) - q (φ k)
     linarith
   have hqρ' : q' < ρ' := by linarith [inv_pos.2 hU_pos]
   -- Continuity of `(α, q, ρ) ↦ (r, r̄)`
   obtain ⟨hr_cont, hrBar_cont⟩ := continuous_shcherbinaTirozzi_rsParameters
     hu1.continuous hu0 hu2.continuous hu3.continuous hD1 hD2
   have hp_l : Tendsto (fun k => (α (φ k), q (φ k), ρ (φ k))) atTop (𝓝 (α', q', ρ')) :=
-    hα_l.prodMk (hq_l.prodMk hρ_l)
+    hα_l.prodMk_nhds (hq_l.prodMk_nhds hρ_l)
   have hr_l : Tendsto (r_k ∘ φ) atTop (𝓝 _) := (hr_cont.tendsto _).comp hp_l
   have hrBar_l : Tendsto (rBar_k ∘ φ) atTop (𝓝 _) := (hrBar_cont.tendsto _).comp hp_l
   have ha_l : Tendsto (a_k ∘ φ) atTop (𝓝 _) := ((hκ_l.const_mul 2).add hr_l).sub hrBar_l
@@ -243,7 +245,8 @@ theorem exists_shcherbinaTirozzi_rsEquations_subseq_limit
         ∫ ξ, Real.exp (u (Real.sqrt q' * z + Real.sqrt (ρ' - q') * ξ)) ∂(gaussianReal 0 1))
         ∂(gaussianReal 0 1)) :=
     ge_of_tendsto ha_l (Eventually.of_forall fun k => (ha_bounds (φ k)).1)
-  have ha'_pos : 0 < _ := lt_of_lt_of_le (by positivity) ha'_ge
+  have h2κ₀ : 0 < 2 * κ₀ := by positivity
+  have ha'_pos := lt_of_lt_of_le h2κ₀ ha'_ge
   have hq_rhs_l : Tendsto (fun k => (r_k (φ k) + h (φ k) ^ 2) / a_k (φ k) ^ 2) atTop (𝓝 _) :=
     (hr_l.add (hh_l.pow 2)).div (ha_l.pow 2) (ne_of_gt (pow_pos ha'_pos 2))
   have hρ_rhs_l : Tendsto
@@ -297,10 +300,12 @@ theorem exists_shcherbinaTirozzi_rsEquations_solution {α κ h D : ℝ} (hα0 : 
         tendsto_inv_atTop_zero.comp (tendsto_natCast_atTop_atTop.atTop_add tendsto_const_nhds)
       simpa using (tendsto_const_nhds (x := α)).sub h0
     refine tendsto_of_tendsto_of_tendsto_of_le_of_le hlo tendsto_const_nhds (fun k => ?_) hα_bd
-    have hlt : α * ((k : ℝ) + 1) - 1 < (M k : ℝ) := Nat.sub_one_lt_floor _
-    rw [sub_lt_iff_lt_add, ← div_lt_iff₀ (by positivity)] at hlt
     have hk1 : (0 : ℝ) < (k : ℝ) + 1 := by positivity
-    nlinarith [div_mul_cancel₀ (1 : ℝ) hk1.ne']
+    have hdiv : (α * ((k : ℝ) + 1) - 1) / ((k : ℝ) + 1) < (M k : ℝ) / ((k : ℝ) + 1) :=
+      div_lt_div_of_pos_right (Nat.sub_one_lt_floor _) hk1
+    have hrew : (α * ((k : ℝ) + 1) - 1) / ((k : ℝ) + 1) = α - ((k : ℝ) + 1)⁻¹ := by
+      field_simp
+    linarith
   obtain ⟨φ, α', κ', h', q', ρ', hφ_mono, _, _, hκ_lo, hκ_hi, _, hq0, hqρ, hα_sub, hκ_sub, hh_sub,
       _, _, ha_pos, hρ_eq, hq_eq⟩ :=
     exists_shcherbinaTirozzi_rsEquations_subseq_limit hκ hα10 huc hu0 hgrow hu1 hu2 hu3 hu4
@@ -371,24 +376,24 @@ theorem exists_shcherbinaTirozzi_rsEquations_near_of_large
         |h (φ k) - h'| < δ ∧ |q_fn (N (φ k)) (M (φ k)) (κ (φ k)) (h (φ k)) - q'| < δ ∧
         |ρ_fn (N (φ k)) (M (φ k)) (κ (φ k)) (h (φ k)) - ρ'| < δ := by
     have h1 : Tendsto (fun k => |(M (φ k) : ℝ) / ((N (φ k) : ℝ) + 1) - α'|) atTop (𝓝 0) := by
-      have t := (hα_l.sub tendsto_const_nhds).abs; rwa [sub_self, abs_zero] at t
+      have t := (hα_l.sub (tendsto_const_nhds (x := α'))).abs; rwa [sub_self, abs_zero] at t
     have h2 : Tendsto (fun k => |κ (φ k) - κ'|) atTop (𝓝 0) := by
-      have t := (hκ_l.sub tendsto_const_nhds).abs; rwa [sub_self, abs_zero] at t
+      have t := (hκ_l.sub (tendsto_const_nhds (x := κ'))).abs; rwa [sub_self, abs_zero] at t
     have h3 : Tendsto (fun k => |h (φ k) - h'|) atTop (𝓝 0) := by
-      have t := (hh_l.sub tendsto_const_nhds).abs; rwa [sub_self, abs_zero] at t
+      have t := (hh_l.sub (tendsto_const_nhds (x := h'))).abs; rwa [sub_self, abs_zero] at t
     have h4 : Tendsto (fun k => |q_fn (N (φ k)) (M (φ k)) (κ (φ k)) (h (φ k)) - q'|)
         atTop (𝓝 0) := by
-      have t := (hq_l.sub tendsto_const_nhds).abs; rwa [sub_self, abs_zero] at t
+      have t := (hq_l.sub (tendsto_const_nhds (x := q'))).abs; rwa [sub_self, abs_zero] at t
     have h5 : Tendsto (fun k => |ρ_fn (N (φ k)) (M (φ k)) (κ (φ k)) (h (φ k)) - ρ'|)
         atTop (𝓝 0) := by
-      have t := (hρ_l.sub tendsto_const_nhds).abs; rwa [sub_self, abs_zero] at t
+      have t := (hρ_l.sub (tendsto_const_nhds (x := ρ'))).abs; rwa [sub_self, abs_zero] at t
     exact (h1.eventually (Iio_mem_nhds hδ)).and ((h2.eventually (Iio_mem_nhds hδ)).and
       ((h3.eventually (Iio_mem_nhds hδ)).and ((h4.eventually (Iio_mem_nhds hδ)).and
         (h5.eventually (Iio_mem_nhds hδ)))))
   obtain ⟨k, hk1, hk2, hk3, hk4, hk5⟩ := hev.exists
   have hcontra := hbad (φ k) α' κ' h' q' ρ' hα'0 hα'1 hκ'0 hκ'1 hh' hq'0 hq'ρ'
     ⟨ha'_pos, hρ_eq, hq_eq⟩ hk1.le hk2.le hk3.le hk4.le
-  exact hk5.not_ge hcontra
+  exact hk5.not_gt hcontra
 
 end Existence
 

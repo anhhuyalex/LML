@@ -820,7 +820,7 @@ theorem exists_bound_of_shcherbinaTirozziHardFunctional_critical (κ₀ κ₁ α
 `(α_n, κ_n, h_n, q_n, ρ_n) → (α₀, κ₀, h₀, q₀, ρ₀)` with `0 ≤ q₀ < ρ₀`, if each `(q_n, ρ_n)` is a
 hard critical point at `(α_n, κ_n, h_n)`, then `(q₀, ρ₀)` is a hard critical point at
 `(α₀, κ₀, h₀)`. -/
-private theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_hard
+theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_hard
     {α κ h q ρ : ℕ → ℝ} {α₀ κ₀ h₀ q₀ ρ₀ τ : ℝ} (hq₀ : 0 ≤ q₀) (hqρ₀ : q₀ < ρ₀)
     (hqn : ∀ n, 0 ≤ q n) (hqρn : ∀ n, q n < ρ n)
     (hα_lim : Tendsto α atTop (𝓝 α₀)) (hκ_lim : Tendsto κ atTop (𝓝 κ₀))
