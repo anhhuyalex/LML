@@ -967,8 +967,8 @@ private lemma norm_integral_sq_eq_sum_sq {ι : Type*} [Fintype ι]
     ‖∫ σ, σ ∂μ‖ ^ 2 = ∑ i, (∫ σ, σ i ∂μ) ^ 2 := by
   rw [EuclideanSpace.real_norm_sq_eq]
   refine Finset.sum_congr rfl fun i _ => ?_
-  rw [← (EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm hi]
-  rfl
+  exact congrArg (fun x : ℝ => x ^ 2)
+    ((EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm hi).symm
 
 /-- A second norm moment controls the centered square of a scaled replica inner product. -/
 private lemma integrable_sq_scaled_inner_sub_pi {E : Type*} [NormedAddCommGroup E]
@@ -983,9 +983,9 @@ private lemma integrable_sq_scaled_inner_sub_pi {E : Type*} [NormedAddCommGroup 
   refine integrable_sub_pow_of_integrable_abs_pow
     (((measurable_pi_apply (0 : Fin 2)).inner (measurable_pi_apply (1 : Fin 2))).const_mul _)
     (c := 0) ((hprod.const_mul (s ^ 2)).mono' (by fun_prop) (ae_of_all _ fun p => ?_)) c
-  rw [sub_zero, Real.norm_of_nonneg (sq_nonneg _), abs_mul, mul_pow, ← mul_pow]
-  exact mul_le_mul_of_nonneg_left
-    (pow_le_pow_left₀ (abs_nonneg _) (abs_real_inner_le_norm _ _) 2) (sq_nonneg _)
+  rw [sub_zero, Real.norm_of_nonneg (sq_nonneg _), abs_mul, mul_pow, sq_abs]
+  have h := pow_le_pow_left₀ (abs_nonneg _) (abs_real_inner_le_norm (p 0) (p 1)) 2
+  exact mul_le_mul_of_nonneg_left (by simpa only [mul_pow] using h) (sq_nonneg _)
 
 /-- **Talagrand, Proposition 3.2.12 (Eq. (3.115)):** at the physical parameters `(q, ρ, r, r̄)`
 for the Shcherbina--Tirozzi model on `ℝ^(N+1)` with `M` constraints (`M ≤ 10 (N + 1)`,
@@ -1030,10 +1030,9 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
   have hR0 : 0 ≤ R := by dsimp only [R]; positivity
   have hRdiff0 : 0 ≤ R_diff := by dsimp only [R_diff]; positivity
   obtain ⟨K_sq, hK_sq, hprop_sq⟩ :=
-    exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le κ₀ h₀ D Q R R_diff hκ₀ hQ0 hR0 hRdiff0
+    exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le κ₀ h₀ D Q hκ₀ hQ0
   obtain ⟨K_mul, hK_mul, hprop_mul⟩ :=
-    exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le κ₀ h₀ D Q R R_diff hκ₀ hQ0 hR0
-      hRdiff0
+    exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le κ₀ h₀ D Q hκ₀ hQ0
   obtain ⟨K_c1, hK_c1, hconc1⟩ :=
     exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le κ₀ h₀ D R R_diff hκ₀ hR0 hRdiff0
   obtain ⟨K_c2, hK_c2, hconc2⟩ :=
@@ -1271,8 +1270,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
         |d| ≤ K / Real.sqrt ((N : ℝ) + 1) := by
       intro t ht
       obtain ⟨d, hd, hbd⟩ := hprop_sq N M' κ h t q ρ u hκ hh ht.1 ht.2 hq0 hqρ hρQ hM'_le huc
-        hu0 hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4 huD (by simpa only [Nat.cast_add, Nat.cast_one] using hrR)
-        (by simpa only [Nat.cast_add, Nat.cast_one] using hrr_diff)
+        hu0 hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4 huD
       refine ⟨d, by simpa only [Nat.cast_add, Nat.cast_one] using hd, ?_⟩
       have hbd' : |d| ≤ K_sq * (E_c / Real.sqrt ((N : ℝ) + 1)) := by
         refine (by simpa only [Nat.cast_add, Nat.cast_one] using hbd).trans ?_
@@ -1338,8 +1336,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
         |d| ≤ K / Real.sqrt ((N : ℝ) + 1) := by
       intro t ht
       obtain ⟨d, hd, hbd⟩ := hprop_mul N M' κ h t q ρ u hκ hh ht.1 ht.2 hq0 hqρ hρQ hM'_le huc
-        hu0 hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4 huD (by simpa only [Nat.cast_add, Nat.cast_one] using hrR)
-        (by simpa only [Nat.cast_add, Nat.cast_one] using hrr_diff)
+        hu0 hu1 hu2 hu3 hu4 hD1 hD2 hD3 hD4 huD
       refine ⟨d, by simpa only [Nat.cast_add, Nat.cast_one] using hd, ?_⟩
       have hbd' : |d| ≤ K_mul * (E_c / Real.sqrt ((N : ℝ) + 1)) := by
         refine (by simpa only [Nat.cast_add, Nat.cast_one] using hbd).trans ?_

@@ -228,9 +228,9 @@ private lemma integrable_and_integral_mul_four_last_spin_sq_le
 along the cavity path `ν_t` on `ℝ^(N+1)` with `M + 1` constraints (`M ≤ 10 (N + 1)`) at the RS
 parameters `(r, r̄)` of Eq. (3.69) with `α = (M + 1) / (N + 1)`,
 `|d/dt ν_t(ε₁²)| ≤ K * (√(ν_t((R_{1,2} - q)²)) + √(ν_t((R_{1,1} - ρ)²)) + (N + 1)⁻¹)`,
-where `K > 0` depends only on `κ₀, h₀, D, Q, R, R_diff`. -/
+where `K > 0` depends only on `κ₀, h₀, D, Q`. -/
 theorem exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le
-    (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R) (hR_diff : 0 ≤ R_diff) :
+    (κ₀ h₀ D Q : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) :
     ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t q ρ : ℝ) (u : ℝ → ℝ),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 < t → t < 1 → 0 ≤ q → q ≤ ρ → ρ ≤ Q →
       M ≤ 10 * (N + 1) → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
@@ -248,7 +248,6 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le
         Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) / Z y
       let r : ℝ := α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)
       let rBar : ℝ := α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)
-      r ≤ R → r - rBar ≤ R_diff →
       let P_full := ((gaussianReal 0 r.toNNReal).prod
         ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))
@@ -265,6 +264,10 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le
             Real.sqrt (∫ d, ∫ x : ℝ^(N + 1),
               (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ) ^ 2 ∂(G_full t d) ∂P_full) +
             ((N : ℝ) + 1)⁻¹) := by
+  let R : ℝ := 11 * D ^ 2
+  let R_diff : ℝ := 11 * (2 * D ^ 2 + |D|)
+  have hR : 0 ≤ R := by dsimp [R]; positivity
+  have hR_diff : 0 ≤ R_diff := by dsimp [R_diff]; positivity
   obtain ⟨K₀, hK₀_pos, hmain⟩ :=
     exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_mul_last_sq_le (R_rep := Fin 1)
       κ₀ h₀ D Q R R_diff hκ₀ hQ hR hR_diff
@@ -276,12 +279,24 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le
   have hK_pos : 0 < K := by dsimp only [K]; positivity
   refine ⟨K, hK_pos, fun N M κ h t q ρ u hκ hh ht0 ht1 hq0 hqρ hρQ hM huc hu0 hu1 hu2 hu3 hu4
     hD1 hD2 hD3 hD4 huD => ?_⟩
-  intro α c Z V W r rBar hrR hrr_diff P_full G_full
+  intro α c Z V W r rBar P_full G_full
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum : Measurable u := hu1.continuous.measurable
   have hα0 : 0 ≤ α := by dsimp only [α]; positivity
-  obtain ⟨hr0, -, hrr, -⟩ :=
+  obtain ⟨hr0, hrD, hrr, hrBar⟩ :=
     shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD1 hD2 hα0 q c
+  have hα_le : α ≤ 11 := by
+    dsimp only [α]
+    rw [div_le_iff₀ (by positivity)]
+    have hM_le : (M : ℝ) ≤ 10 * ((N : ℝ) + 1) := by exact_mod_cast hM
+    linarith [Nat.cast_nonneg (α := ℝ) N]
+  have hrR : r ≤ R := hrD.trans (mul_le_mul_of_nonneg_right hα_le (sq_nonneg D))
+  have hrr_diff : r - rBar ≤ R_diff := by
+    calc
+      _ ≤ α * (2 * D ^ 2 + D) := by linarith [hrD, hrBar]
+      _ ≤ α * (2 * D ^ 2 + |D|) :=
+        mul_le_mul_of_nonneg_left (add_le_add le_rfl (le_abs_self D)) hα0
+      _ ≤ R_diff := mul_le_mul_of_nonneg_right hα_le (by positivity)
   have hr_coe : (r.toNNReal : ℝ) = r := Real.coe_toNNReal r hr0
   have hrr' : rBar ≤ (r.toNNReal : ℝ) := by rw [hr_coe]; exact hrr
   have hrR' : (r.toNNReal : ℝ) ≤ R := by rw [hr_coe]; exact hrR
@@ -387,9 +402,9 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le
 along the cavity path `ν_t` on `ℝ^(N+1)` with `M + 1` constraints (`M ≤ 10 (N + 1)`) at the RS
 parameters `(r, r̄)` of Eq. (3.69) with `α = (M + 1) / (N + 1)`,
 `|d/dt ν_t(ε₁ ε₂)| ≤ K * (√(ν_t((R_{1,2} - q)²)) + √(ν_t((R_{1,1} - ρ)²)) + (N + 1)⁻¹)`,
-where `K > 0` depends only on `κ₀, h₀, D, Q, R, R_diff`. -/
+where `K > 0` depends only on `κ₀, h₀, D, Q`. -/
 theorem exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le
-    (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R) (hR_diff : 0 ≤ R_diff) :
+    (κ₀ h₀ D Q : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) :
     ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t q ρ : ℝ) (u : ℝ → ℝ),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 < t → t < 1 → 0 ≤ q → q ≤ ρ → ρ ≤ Q →
       M ≤ 10 * (N + 1) → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
@@ -407,7 +422,6 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le
         Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) / Z y
       let r : ℝ := α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)
       let rBar : ℝ := α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)
-      r ≤ R → r - rBar ≤ R_diff →
       let P_full := ((gaussianReal 0 r.toNNReal).prod
         ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))
@@ -426,6 +440,10 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le
             Real.sqrt (∫ d, ∫ x : ℝ^(N + 1),
               (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ) ^ 2 ∂(G_full t d) ∂P_full) +
             ((N : ℝ) + 1)⁻¹) := by
+  let R : ℝ := 11 * D ^ 2
+  let R_diff : ℝ := 11 * (2 * D ^ 2 + |D|)
+  have hR : 0 ≤ R := by dsimp [R]; positivity
+  have hR_diff : 0 ≤ R_diff := by dsimp [R_diff]; positivity
   obtain ⟨K₀, hK₀_pos, hmain⟩ :=
     exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_mul_last_sq_le (R_rep := Fin 2)
       κ₀ h₀ D Q R R_diff hκ₀ hQ hR hR_diff
@@ -437,11 +455,23 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le
   have hK_pos : 0 < K := by dsimp only [K]; positivity
   refine ⟨K, hK_pos, fun N M κ h t q ρ u hκ hh ht0 ht1 hq0 hqρ hρQ hM huc hu0 hu1 hu2 hu3 hu4
     hD1 hD2 hD3 hD4 huD => ?_⟩
-  intro α c Z V W r rBar hrR hrr_diff P_full G_full
+  intro α c Z V W r rBar P_full G_full
   have hum : Measurable u := hu1.continuous.measurable
   have hα0 : 0 ≤ α := by dsimp only [α]; positivity
-  obtain ⟨hr0, -, hrr, -⟩ :=
+  obtain ⟨hr0, hrD, hrr, hrBar⟩ :=
     shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD1 hD2 hα0 q c
+  have hα_le : α ≤ 11 := by
+    dsimp only [α]
+    rw [div_le_iff₀ (by positivity)]
+    have hM_le : (M : ℝ) ≤ 10 * ((N : ℝ) + 1) := by exact_mod_cast hM
+    linarith [Nat.cast_nonneg (α := ℝ) N]
+  have hrR : r ≤ R := hrD.trans (mul_le_mul_of_nonneg_right hα_le (sq_nonneg D))
+  have hrr_diff : r - rBar ≤ R_diff := by
+    calc
+      _ ≤ α * (2 * D ^ 2 + D) := by linarith [hrD, hrBar]
+      _ ≤ α * (2 * D ^ 2 + |D|) :=
+        mul_le_mul_of_nonneg_left (add_le_add le_rfl (le_abs_self D)) hα0
+      _ ≤ R_diff := mul_le_mul_of_nonneg_right hα_le (by positivity)
   have hr_coe : (r.toNNReal : ℝ) = r := Real.coe_toNNReal r hr0
   have hrr' : rBar ≤ (r.toNNReal : ℝ) := by rw [hr_coe]; exact hrr
   have hrR' : (r.toNNReal : ℝ) ≤ R := by rw [hr_coe]; exact hrR

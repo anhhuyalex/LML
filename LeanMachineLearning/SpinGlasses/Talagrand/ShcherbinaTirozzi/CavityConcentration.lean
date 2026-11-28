@@ -984,7 +984,8 @@ theorem exists_integral_shcherbinaTirozziCavity_overlap_sub_pow_le
       ∂((G d).prod (G d)) :=
     hmeas (fun _ p => (((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ - c) ^ (2 * k))
       (((hRm.sub_const c).pow_const _).comp measurable_snd) hci
-  have h := integral_integral_sub_pow_le_of_center (P := cavLaw[N, M, r]) (G := fun d => (G d).prod (G d))
+  have h := integral_integral_sub_pow_le_of_center (P := cavLaw[N, M, r])
+    (G := fun d => (G d).prod (G d))
     (R := fun p : ℝ^(N + 1) × ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫) hRm hk0 c hmc hfix
     (a := 48 * K₁₁ * (1 + R) * k / ((N : ℝ) + 1)) (b := K₁₇ * k / ((N : ℝ) + 1))
     (by positivity) (by positivity) h12.1 h12.2

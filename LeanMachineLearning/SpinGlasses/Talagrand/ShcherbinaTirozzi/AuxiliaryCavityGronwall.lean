@@ -530,11 +530,13 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp
         exact h.ae_eq (ae_of_all _ fun σ => hX_eq σ)
     have hF2_mem : ∀ w, MemLp (fun σ : Option (Option R_rep) → ℝ^(N + 1) × ℝ =>
         |f (fun l => (σ (some (some l))).1)|) 2
-        (Measure.pi fun _ : Option (Option R_rep) => G_aux w) := fun w =>
-      memLp_two_pi_comp_injective_of_poly_bound _ hinj_some measurable_fst hf hfb
-        (by simpa only [abs_norm] using
-          integrable_one_add_abs_pow_of_integrable_exp_sq
-            ((measurable_norm.comp measurable_fst).aestronglyMeasurable) hK₁_pos (hsi w) _)
+        (Measure.pi fun _ : Option (Option R_rep) => G_aux w) := fun w => by
+      letI := hprob w
+      have hm : Measurable fun p : ℝ^(N + 1) × ℝ => ‖p.1‖ :=
+        measurable_norm.comp measurable_fst
+      refine memLp_two_pi_comp_injective_of_poly_bound (G_aux w) hinj_some measurable_fst hf hfb ?_
+      simpa only [abs_norm] using
+        integrable_one_add_abs_pow_of_integrable_exp_sq hm.aestronglyMeasurable hK₁_pos (hsi w) m
     have hSb' : ∫ w, ∫ σ, ({τ | K_thr ≤ X_ab τ}.indicator (fun _ => (1 : ℝ)) σ)
         ∂(Measure.pi fun _ : Option (Option R_rep) => G_aux w) ∂auxLaw[N, M, r] ≤
         (Real.exp (-((N : ℝ) + 1))) ^ 4 := by

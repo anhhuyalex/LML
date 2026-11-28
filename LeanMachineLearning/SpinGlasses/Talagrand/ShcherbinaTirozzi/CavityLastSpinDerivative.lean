@@ -1021,10 +1021,12 @@ theorem exists_abs_shcherbinaTirozziAuxCavity_one_sub_zero_le
         MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ => |g (fun l => (σ (some (some l))).1)|) 2
           (Measure.pi fun _ : R_big => G_aux s w) := fun w => by
       have := hprob w
-      exact memLp_two_pi_comp_injective_of_poly_bound _ hinj_ss measurable_fst hg hgb
-        (by simpa only [abs_norm] using
-          integrable_one_add_abs_pow_of_integrable_exp_sq
-            ((measurable_norm.comp measurable_fst).aestronglyMeasurable) hK₁_pos (hstate.2.1 w) _)
+      have hm : Measurable fun p : ℝ^(N + 1) × ℝ => ‖p.1‖ :=
+        measurable_norm.comp measurable_fst
+      refine memLp_two_pi_comp_injective_of_poly_bound (G_aux s w) hinj_ss measurable_fst hg hgb ?_
+      simpa only [abs_norm] using
+        integrable_one_add_abs_pow_of_integrable_exp_sq hm.aestronglyMeasurable
+          hK₁_pos (hstate.2.1 w) m
     have hV1_2 : ∀ w : AuxDis[N, M],
         MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ =>
           |((N : ℝ) + 1)⁻¹ * ⟪(σ a).1, (σ b).1⟫ - m_ab|) 2
