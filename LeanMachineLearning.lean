@@ -32,6 +32,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Measurable
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.SmoothCutoff
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Deriv
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.EuclideanDrift
@@ -836,6 +837,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moment
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSAccuracy
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSEquations
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSExistence
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSFreeEnergyEnvelope
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.ReplicaSymmetricBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct

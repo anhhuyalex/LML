@@ -636,6 +636,39 @@ Let $\mu$ be an additive Haar measure on a finite-dimensional space $E_1$, let $
 space, and let $F:E_1\times E_2\to\mathbb R$ be concave with $e^{F(\cdot,y)}$ integrable for every $y$. Then
 $y\mapsto\log\int e^{F(x,y)}\,d\mu(x)$ is concave.
 \end{lemma}
+
+\begin{remark}[Differences from Lemma~3.2.5, and the reasons]\label{rem:sg-tal:st-lemma-325}
+\talsource{Lemma~3.2.5, Eqs.~(3.81)--(3.84)}
+\emph{The book's statement.} Let $T\le0$ be concave on $\mathbb R^N$, let $\kappa,\kappa'>0$, let
+$C\subset\mathbb R^N$ be convex, and let $G$ have density proportional to
+\[
+\mathbf 1_C(\sigma)\exp\Bigl(T(\sigma)-\kappa\|\sigma\|^2-\kappa'\sigma_N^2+\sum_{i\le N}a_i\sigma_i\Bigr).
+\]
+Write $\sigma=(\rho,\varepsilon)$, let $C'$ be the projection of $C$ on the last coordinate, put
+$F(\sigma)=T(\sigma)-\kappa\sum_{i<N}\sigma_i^2+\sum_{i<N}a_i\sigma_i$ and
+\[
+f(\varepsilon)=\log\int_{\{\rho:(\rho,\varepsilon)\in C\}}e^{F(\rho,\varepsilon)}\,d\rho,\qquad
+w(x)=f(x)-(\kappa+\kappa')x^2+a_Nx .
+\]
+Then $f$ is concave on $C'$, and the law of $\sigma_N$ under $G$ has density proportional to $e^{w}$ on $C'$.
+
+\emph{What is formalized} (Lemma~\ref{lem:sg-tal:st-marginal}) is the concavity of $f$ when the integral
+runs over the whole space.
+
+\emph{Differences and reasons.}
+(i) The function $F$ is any concave function with integrable slices on $E_1\times E_2$; the sign of $T$, the
+quadratic form of the exponent and the dimension of $E_2$ play no role. This is exactly what the
+Pr\'ekopa--Leindler inequality uses, so the same statement serves every marginal.
+(ii) There is no convex set $C$. Section~3.2 uses the lemma twice, for Lemma~3.2.6, where $C=\mathbb R^N$, and
+for the concavity of $u_v$ in Eq.~(3.99), where the integral is over a whole line; we found no other use in the
+source. A general $C$ also needs care in the statement: at a point of $C'$ whose slice has measure zero the
+integral vanishes, so $f$ must either be restricted to the slices of positive measure or take the value
+$-\infty$. The logarithm of the formal library gives $\log0=0$, and with that convention the statement on all of
+$C'$ would be false.
+(iii) The description of the law of $\sigma_N$ is not a separate declaration. It is Fubini's theorem, and it
+enters inside the proof of Lemma~\ref{lem:sg-tal:st-last-spin}, its only use. For $u_v$ the formal proof of
+concavity follows the book's second argument, $u_v''\le0$ (Lemma~\ref{lem:sg-tal:st-aux-cavity}).
+\end{remark}
 \begin{proof}
   \leanok
   \uses{thm:sg-tal:st-prekopa-leindler}
@@ -712,8 +745,8 @@ bounded, so integrating in $\omega$ preserves the inequality.
 Lemma~3.2.2 assumes $w''\le-c<0$; the formal statement assumes only the one-sided inequality which the
 book's proof derives from it, and needs no second derivative. Lemma~3.2.3 is stated both as the variance
 bound equivalent to (3.73) and as the inequality $\bar r\le r$, which is also valid when $\rho=q$ and does not
-need the integration-by-parts forms (3.67)--(3.68) of $\Psi$ and $\bar\Psi$. Of Lemma~3.2.5 the concavity
-statement is formalized, in a general form; the description of the law of $\sigma_N$ is not.
+need the integration-by-parts forms (3.67)--(3.68) of $\Psi$ and $\bar\Psi$. Lemma~3.2.5 is discussed in
+Remark~\ref{rem:sg-tal:st-lemma-325}.
 \end{remark}
 
 \begin{lemma}[The decoupled last spin]\label{lem:sg-tal:st-endpoint-gaussian}
@@ -1085,15 +1118,46 @@ $-\frac r2 D(\varepsilon^2)+\frac{r-\bar r}2 D(\varepsilon^2)=-\frac{\bar r}2 D(
 Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/CavityDerivative.lean}.
 \end{proof}
 
-\begin{remark}[Hypotheses and form of Proposition~3.2.1]\label{rem:sg-tal:st-prop-321}
-\talsource{Proposition~3.2.1}
-The book states Proposition~3.2.1 for an arbitrary function $f$ on $(\mathbb R^N)^n$ without explicit growth
-conditions; because spins are unbounded on $\mathbb R^{N+1}$, the formal statement assumes $f$ measurable of
-polynomial growth, $\kappa>0$, $\bar r\le r$, $u\le0$, and bounded $u',u''$ (from (3.7), without needing third
-or fourth derivatives). In the book's Equations~(3.62)--(3.66), the constraint sum is already collapsed by row
-symmetry to $\alpha=M/(N+1)$ times the last constraint $S_{M,t}$, and Terms~IV and~V are kept separate; the
-formal statement keeps the sum $(N+1)^{-1}\sum_{k<M}$ over all constraints (before row symmetry) and combines
-Terms~IV and~V into $-\bar r\,\mathbb E[D(\varepsilon^2)/2]$.
+\begin{remark}[Differences from Proposition~3.2.1, and the reasons]\label{rem:sg-tal:st-prop-321}
+\talsource{Proposition~3.2.1, Eqs.~(3.62)--(3.66)}
+For $n$ replicas, write $D(h)$ and $\mathcal P(K)$ explicitly:
+\begin{align*}
+D(h)&=\Bigl\langle f\Bigl(\sum_{\ell\le n}h(\sigma^\ell)-n\,h(\sigma^{n+1})\Bigr)\Bigr\rangle_t,\\
+\mathcal P(K)&=\Bigl\langle f\Bigl(\sum_{\ell<\ell'\le n}K(\sigma^\ell,\sigma^{\ell'})
+-n\sum_{\ell\le n}K(\sigma^\ell,\sigma^{n+1})
++\frac{n(n+1)}2K(\sigma^{n+1},\sigma^{n+2})\Bigr)\Bigr\rangle_t .
+\end{align*}
+\emph{The book's statement} is $\nu_t'(f)=\mathrm I+\mathrm{II}+\mathrm{III}+\mathrm{IV}+\mathrm V$, where, with
+$\alpha$ the ratio of constraints to spins and $U,V$ taken for the \emph{last} constraint only,
+\begin{align*}
+\mathrm I&=\frac\alpha2\,\mathbb E\,D(V),\qquad
+\mathrm{II}=\alpha\,\mathbb E\,\mathcal P(U\otimes U),\qquad
+\mathrm{III}=-r\,\mathbb E\,\mathcal P(\varepsilon\otimes\varepsilon),\\
+\mathrm{IV}&=-\frac r2\,\mathbb E\,D(\varepsilon^2),\qquad
+\mathrm V=\frac{r-\bar r}2\,\mathbb E\,D(\varepsilon^2).
+\end{align*}
+\emph{The formal statement} (Theorem~\ref{thm:sg-tal:st-cavity-derivative}) is
+\[
+\nu_t'(f)=\frac1{N+1}\sum_{k<M}\mathbb E\Bigl[\frac{D(V_k)}2+\mathcal P(U_k\otimes U_k)\Bigr]
+-\mathbb E\Bigl[r\,\mathcal P(\varepsilon\otimes\varepsilon)+\bar r\,\frac{D(\varepsilon^2)}2\Bigr].
+\]
+\emph{Differences and reasons.}
+(i) \emph{The sum over all constraints is kept.} Since $f$ depends only on the spins, exchanging two rows of
+$(g_{i,k})$ preserves the law of the disorder, so all $M$ summands have the same expectation, and the sum equals
+$M/(N+1)$ times the term of any one constraint: this gives the book's $\mathrm I+\mathrm{II}$. We keep the two
+facts apart for three reasons. The sum is what differentiation and integration by parts produce, with no symmetry
+argument. The formula then holds for every $M$, including $M=0$ where there is no last constraint, and the proof
+of Theorem~\ref{thm:sg-tal:st-lemma-3211} uses it for every $M$. The exchange of rows is proved once, as a
+separate statement, and applied where the book's form is needed
+(Proposition~\ref{prop:sg-tal:st-last-spin-deriv}, Step~3).
+(ii) \emph{Terms IV and V are merged}, since
+$-\frac r2+\frac{r-\bar r}2=-\frac{\bar r}2$. The book keeps them apart to explain where each comes from, which is
+Step~4 of the proof here.
+(iii) \emph{Hypotheses are explicit.} The book states the formula for any function $f$ on $(\mathbb R^N)^n$.
+Since the spins are unbounded, $f$ is assumed measurable of polynomial growth, which gives all the integrability
+used; moreover $\kappa>0$, $\bar r\le r$, $u\le0$, and $u',u''$ are bounded, as in (3.7). The third and fourth
+derivatives of (3.95) are not used. The derivative is taken at $0<t<1$, because $\sqrt t$ and $\sqrt{1-t}$ are
+not differentiable at the endpoints. The system has $N+1$ spins.
 \end{remark}
 
 \begin{lemma}[Moments and continuity along the cavity path]\label{lem:sg-tal:st-cavity-moments}
@@ -1305,14 +1369,60 @@ Formalized in the file
 \texttt{AuxiliaryCavityDerivative}.
 \end{proof}
 
-\begin{remark}[Differences from Eq.~(3.96)]\label{rem:sg-tal:st-eq-396}
-\talsource{Lemma~3.2.8}
-The book states (3.96) for $B_v\in\{1,\;u'(S_v^1)u'(S_v^2),\;u'^2(S_v^1)+u''(S_v^1)\}$; these are products of
-factors $\psi_l$ as above when four derivatives of $u$ are bounded, as in (3.95). The book's bound has the
-full overlap $R_{a,b}$ and an additional term $\nu_{t,v}(|f|)/N$. The covariance of the fields is the
-truncated overlap $R^t_{a,b}=R_{a,b}-(1-t)\sigma^a_{N+1}\sigma^b_{N+1}/(N+1)$. The last spin is not bounded,
-so the difference is not bounded by $K\nu_{t,v}(|f|)/N$ without a further estimate, and the statement above
-keeps $R^t$. The sum here also contains the diagonal term of the second fresh replica. Concavity of $u$ is not used, and the constant does not depend on a lower bound for $\kappa$.
+\begin{remark}[Differences from Eq.~(3.96), and the reasons]\label{rem:sg-tal:st-eq-396}
+\talsource{Lemma~3.2.8, Eq.~(3.96)}
+\emph{The book's statement.} Let $f$ be a function of $n$ replicas, and let $B_v$ be one of
+\[
+1,\qquad u'(S_v^1)\,u'(S_v^2),\qquad u'^2(S_v^1)+u''(S_v^1).
+\]
+Then
+\begin{align*}
+\Bigl|\frac d{dv}\nu_{t,v}(fB_v)\Bigr|\le K\Bigl(&\sum_{\ell\le n+1}\nu_{t,v}\bigl(|f|\,|R_{\ell,\ell}-\rho|\bigr)
++\sum_{1\le\ell<\ell'\le n+2}\nu_{t,v}\bigl(|f|\,|R_{\ell,\ell'}-q|\bigr)
++\frac1N\,\nu_{t,v}(|f|)\Bigr),
+\end{align*}
+with $K$ depending on $n,\kappa_0,h_0,D$.
+
+\emph{What is formalized} (Lemma~\ref{lem:sg-tal:st-aux-derivative}) is, with $m_{a,b}=\rho$ for $a=b$ and
+$q$ otherwise, and the sum over all pairs of the $n+2$ replicas,
+\begin{align*}
+\Bigl|\frac d{dv}\nu_{t,v}\Bigl(f\prod_l\psi_l(S_v^l)\Bigr)\Bigr|
+&\le K\sum_{a,b}\nu_{t,v}\bigl(|f|\,|R^t_{a,b}-m_{a,b}|\bigr),\\
+R^t_{a,b}&=R_{a,b}-\frac{(1-t)\,\varepsilon_a\varepsilon_b}{N+1},\qquad\varepsilon_a=\sigma^a_{N+1}.
+\end{align*}
+
+\emph{(i) The truncated overlap, and no term $1/N$.} Gaussian integration by parts produces the covariance of the
+fields, and the field $S_{M+1,t}$ couples the last spin with the factor $\sqrt t$, so that with
+$S_v'=\frac d{dv}S_v$
+\[
+\mathbb E\bigl[S_v'(\sigma^a)\,S_v(\sigma^b)\bigr]=\tfrac12\bigl(R^t_{a,b}-m_{a,b}\bigr).
+\]
+Replacing $R^t$ by $R$ costs
+\[
+|R^t_{a,b}-m_{a,b}|\le|R_{a,b}-m_{a,b}|+\frac{(1-t)\,|\varepsilon_a\varepsilon_b|}{N+1},
+\]
+which gives the book's bound with one change: in place of $\nu_{t,v}(|f|)/N$ stands a sum over $a,b$ of
+\[
+\frac1{N+1}\,\nu_{t,v}\bigl(|f\,\varepsilon_a\varepsilon_b|\bigr).
+\]
+The last spin is not bounded, and we know no argument that bounds this by $K\nu_{t,v}(|f|)/N$ for every $f$. We
+have not shown that the printed inequality is false. We state the bound that the computation proves, for every $f$ of polynomial growth,
+and estimate the last spin only where $f$ is specific.
+
+\emph{(ii) Nothing used later is lost.} Contracting the last coordinate by $\sqrt t$ does not increase the norm, so
+$R^t_{a,b}-m_{a,b}$ has the same exponential tail as $R_{a,b}-m_{a,b}$, and Eq.~(3.105) holds as printed
+(Lemma~\ref{lem:sg-tal:st-aux-gronwall}). In Proposition~\ref{prop:sg-tal:st-last-spin-deriv} the observables are
+explicit, the extra term is controlled by the moments (3.100) of the last spin, and it contributes $O(1/N)$ as in
+the book.
+
+\emph{(iii) All pairs of replicas.} The sum also contains the diagonal term of the second fresh replica,
+$a=b=n+2$. The two fresh replicas are exchangeable and $f$ does not depend on them, so this term equals the one
+for $a=b=n+1$ and can be absorbed in the constant.
+
+\emph{(iv) General factors.} The factors $\psi_l$ are arbitrary with two bounded derivatives. The three functions
+$B_v$ of the book are special cases when four derivatives of $u$ are bounded, as in (3.95), so one proof covers
+them. Concavity of $u$ is not used, the constant does not depend on $\kappa_0$ or $h_0$, and the configurations lie
+in $(\mathbb R^{N+1})^n$ (the book prints $\Sigma_N^n$).
 \end{remark}
 
 \begin{lemma}[Tails and moments from an exponential moment]\label{lem:sg-tal:st-exp-tail-moments}
@@ -1940,11 +2050,69 @@ the equations (3.69), (3.76) and (3.77), which by Proposition~3.2.4 is the conte
 
 \emph{Not formalized.} Lemma~3.2.11 is printed with the rate $K/N$; only the rate $K/\sqrt{N+1}$, which the
 book's proof obtains first and which suffices for Proposition~3.2.12, is proved. Theorem~3.2.14 (the rate $K/N$
-in (3.115)), whose proof the book only sketches, is not formalized. Neither is the consequence drawn after
-(3.115) that the system has a solution, obtained by letting $N\to\infty$.
+in (3.115)) is not formalized; see Remark~\ref{rem:sg-tal:st-theorem-3214}. Neither is the consequence drawn
+after (3.115) that the system has a solution, obtained by letting $N\to\infty$.
 
 \emph{Printed corrections.} In the proof of Lemma~3.2.11, the bound on $R_{1,2}-q_t$ cited as (3.112) is (3.111).
 After (3.115), the equations cited as (3.69), (3.76) and (3.104) are (3.69), (3.76) and (3.77).
+\end{remark}
+
+\begin{remark}[Theorem~3.2.14, and why it is not formalized]\label{rem:sg-tal:st-theorem-3214}
+\talsource{Theorem~3.2.14, Eqs.~(3.118)--(3.120)}
+\emph{The book's statement.} Under the assumptions of Proposition~3.2.12,
+\[
+\bigl|\nu(\varepsilon_1^2)-\nu_0(\varepsilon_1^2)\bigr|\le\frac KN,\qquad
+\bigl|\nu(\varepsilon_1\varepsilon_2)-\nu_0(\varepsilon_1\varepsilon_2)\bigr|\le\frac KN .
+\]
+Equivalently, by Proposition~3.2.4, the errors in Theorem~\ref{thm:sg-tal:st-rs-accuracy} are of order $1/(N+1)$.
+
+\emph{Status.} There is no Lean statement and no proof here. The proved rate is $K/\sqrt{N+1}$.
+
+\emph{Why it is not formalized.}
+(i) We found no later use of it in the source. The limits taken for Theorems~3.3.1 and~3.3.2 only need errors that
+tend to zero, and the book calls the improvement a side story.
+(ii) The book gives a sketch and leaves the details to the reader.
+(iii) The sketch needs a second-order estimate that is not available, and a direct computation of it uses more
+derivatives of $u$ than (3.95) provides.
+
+\emph{The book's route and what it needs.} Let $f$ be $\varepsilon_1^2$ or $\varepsilon_1\varepsilon_2$, let $B_v$ be
+as in Lemma~3.2.8, and put $\varphi(v)=\nu_{t,v}(fB_v)$. Write $m=\rho$ or $q$ according as the two replicas of
+$R_{\ell,\ell'}$ are equal or not. By Proposition~3.2.1 it suffices that
+$|\varphi(1)-\varphi(0)|\le K/N$, which the book derives from
+\[
+\bigl|\varphi(1)-\varphi(0)-\varphi'(0)\bigr|\le\sup_{0<v<1}|\varphi''(v)| .
+\]
+
+\emph{Step A (second derivative): the obstruction.} One needs $\sup|\varphi''|\le K/N$, each differentiation
+producing one factor $R_{\ell,\ell'}-m$. The moment bounds for these factors are available:
+Theorem~\ref{thm:sg-tal:st-cavity-overlaps} with $k=2$ and Theorem~\ref{thm:sg-tal:st-lemma-3211} give
+\[
+\nu_t\bigl((R_{\ell,\ell'}-m)^4\bigr)^{1/4}\le\frac K{\sqrt{N+1}}\qquad(N+1\ge8),
+\]
+so the rate $K/N$ of Lemma~3.2.11 is not needed here, and Lemma~\ref{lem:sg-tal:st-aux-gronwall} moves the bound
+to $\nu_{t,v}$. The second derivative itself is missing. By Gaussian integration by parts, one derivative in $v$
+applies two derivatives in the fields to the integrand, weighted by $(R^t_{a,b}-m_{a,b})/2$; two derivatives in
+$v$ therefore apply four. For $B_v=u''+u'^2$ one has $B_ve^{u}=(e^{u})''$, so the term of $\varphi''$ weighted by
+$(R^t_{1,1}-\rho)^2/4$ contains $(e^{u})^{(6)}$, and hence $u^{(5)}$ and $u^{(6)}$. The book assumes bounds on
+$u^{(l)}$ for $l\le4$ only. A formal proof needs either bounds on two further derivatives, a hypothesis the book
+does not make, or an argument that avoids them. We have done neither.
+
+\emph{Step B (derivative at $v=0$).} One needs $|\varphi'(0)|\le K/N$, which the book reduces to
+\[
+\bigl|\mathbb E\bigl\langle f\,(R_{\ell,\ell'}-m)\bigr\rangle_{t,\sim}\bigr|\le\frac KN .
+\]
+This uses the value of the one-sided derivative at $v=0$; the formal derivative statements are for $0<v<1$ and give
+bounds rather than the expression needed.
+
+\emph{Step C (comparisons and symmetry).} With $g=f\,(R_{\ell,\ell'}-m)$ the book compares $\nu_t(g)$ with
+$\mathbb E\langle g\rangle_{t,\sim}$, bounds $\nu_s'(g)$ by $K/N$, and uses the symmetry between sites,
+\[
+\nu\bigl(\varepsilon_1^2(R_{\ell,\ell'}-q)\bigr)=\nu\bigl((R_{1,1}-\rho)(R_{\ell,\ell'}-q)\bigr)\qquad(\ell\ne\ell').
+\]
+The endpoint comparison and the derivative bound used for Proposition~\ref{prop:sg-tal:st-last-spin-deriv} are
+formalized for general observables and appear to apply to $g$ once $\nu_{t,s}(g^2)$ and the corresponding moments
+with the last spins are bounded by $K/N$; this has not been tried. The symmetry identity needs
+Lemma~\ref{lem:sg-tal:st-site-symmetry} for observables of several replicas.
 \end{remark}
 
 \section{Replica-symmetric solutions (Talagrand Section~3.3)}

@@ -519,4 +519,114 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
       mul_nonneg (mul_nonneg hD0 (abs_nonneg c)) (abs_nonneg y)]
   exact ⟨hv_conc, hv0, hv_diff, hvD, hlow⟩
 
+section Continuity
+
+/-- Any finite nonzero measure gives strictly positive integral to `x ↦ exp (w x)` whenever
+`w ≤ 0` is measurable. -/
+theorem integral_exp_pos_of_isFiniteMeasure {E : Type*} [MeasurableSpace E] {μ : Measure E}
+    [IsFiniteMeasure μ] [NeZero μ] {w : E → ℝ} (hwm : Measurable w) (hw0 : ∀ x, w x ≤ 0) :
+    0 < ∫ x, Real.exp (w x) ∂μ := by
+  have hint : Integrable (fun x => Real.exp (w x)) μ :=
+    (integrable_const (1 : ℝ)).mono' hwm.exp.aestronglyMeasurable (ae_of_all _ fun x => by
+      rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_one_iff]; exact hw0 x)
+  rw [integral_pos_iff_support_of_nonneg (fun x => (Real.exp_pos _).le) hint]
+  have hsupp : Function.support (fun x => Real.exp (w x)) = Set.univ := by
+    ext x; simp [ne_of_gt (Real.exp_pos _)]
+  rw [hsupp]
+  exact Measure.measure_univ_pos.2 (NeZero.ne μ)
+
+/-- Continuity of `p ↦ ∫ x, g p x * exp (w p x) ∂μ` on a finite measure space when `g` is
+uniformly bounded, `w ≤ 0`, and both are continuous in `p` and measurable in `x`. -/
+theorem continuous_integral_mul_exp_of_isFiniteMeasure {P E : Type*} [TopologicalSpace P]
+    [FirstCountableTopology P] [MeasurableSpace E] {μ : Measure E} [IsFiniteMeasure μ]
+    {g w : P → E → ℝ} {B : ℝ} (hg_c : ∀ x, Continuous fun p => g p x)
+    (hw_c : ∀ x, Continuous fun p => w p x) (hg_m : ∀ p, Measurable (g p))
+    (hw_m : ∀ p, Measurable (w p)) (hB : ∀ p x, |g p x| ≤ B) (hw0 : ∀ p x, w p x ≤ 0) :
+    Continuous fun p => ∫ x, g p x * Real.exp (w p x) ∂μ := by
+  refine continuous_of_dominated (bound := fun _ => B) (fun p => ?_) (fun p => ?_)
+    (integrable_const B) (ae_of_all _ fun x => (hg_c x).mul (Real.continuous_exp.comp (hw_c x)))
+  · exact ((hg_m p).mul (hw_m p).exp).aestronglyMeasurable
+  · refine ae_of_all _ fun x => ?_
+    rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact (mul_le_of_le_one_right (abs_nonneg _) (Real.exp_le_one_iff.2 (hw0 p x))).trans
+      (hB p x)
+
+/-- Continuity of the tilted ratio `p ↦ (∫ x, g p x * exp (w p x) ∂μ) / ∫ x, exp (w p x) ∂μ`
+on a finite nonzero measure space. -/
+theorem continuous_integral_mul_exp_div_of_isFiniteMeasure {P E : Type*} [TopologicalSpace P]
+    [FirstCountableTopology P] [MeasurableSpace E] {μ : Measure E} [IsFiniteMeasure μ]
+    [NeZero μ] {g w : P → E → ℝ} {B : ℝ} (hg_c : ∀ x, Continuous fun p => g p x)
+    (hw_c : ∀ x, Continuous fun p => w p x) (hg_m : ∀ p, Measurable (g p))
+    (hw_m : ∀ p, Measurable (w p)) (hB : ∀ p x, |g p x| ≤ B) (hw0 : ∀ p x, w p x ≤ 0) :
+    Continuous fun p =>
+      (∫ x, g p x * Real.exp (w p x) ∂μ) / ∫ x, Real.exp (w p x) ∂μ := by
+  refine (continuous_integral_mul_exp_of_isFiniteMeasure hg_c hw_c hg_m hw_m hB hw0).div ?_
+    fun p => ne_of_gt (integral_exp_pos_of_isFiniteMeasure (hw_m p) (hw0 p))
+  simpa only [one_mul] using continuous_integral_mul_exp_of_isFiniteMeasure
+    (g := fun _ _ => (1 : ℝ)) (B := 1) (fun _ => continuous_const) hw_c
+    (fun _ => measurable_const) hw_m (fun _ _ => by simp) hw0
+
+/-- Continuity of an outer finite-measure expectation `p ↦ ∫ ω, φ (ratio (arg p ω ·)) ∂ν`, where
+the inner ratio averages `f (arg p ω x)` under the tilted probability measure proportional to
+`exp (u (arg p ω x)) dμ(x)`. -/
+theorem continuous_integral_comp_ratio_of_isFiniteMeasure {P Ω E : Type*} [TopologicalSpace P]
+    [FirstCountableTopology P] [MeasurableSpace Ω] [MeasurableSpace E] {ν : Measure Ω}
+    {μ : Measure E} [IsFiniteMeasure ν] [IsFiniteMeasure μ] [NeZero μ] {arg : P → Ω → E → ℝ}
+    {f u φ : ℝ → ℝ} {B Bφ : ℝ} (harg_c : ∀ ω x, Continuous fun p => arg p ω x)
+    (harg_m : ∀ p, Measurable fun q : Ω × E => arg p q.1 q.2)
+    (hf : Continuous f) (hu : Continuous u) (hφ : Continuous φ)
+    (hB : ∀ x, |f x| ≤ B) (hu0 : ∀ x, u x ≤ 0) (hBφ : ∀ t, |t| ≤ B → |φ t| ≤ Bφ) :
+    Continuous fun p =>
+      ∫ ω, φ ((∫ x, f (arg p ω x) * Real.exp (u (arg p ω x)) ∂μ) /
+        ∫ x, Real.exp (u (arg p ω x)) ∂μ) ∂ν := by
+  have hmeas_arg : ∀ p ω, Measurable (arg p ω) := fun p ω =>
+    (harg_m p).comp measurable_prodMk_left
+  refine continuous_of_dominated (bound := fun _ => Bφ) (fun p => ?_) (fun p => ?_)
+    (integrable_const Bφ) (ae_of_all _ fun ω => ?_)
+  · have hnum : Measurable fun ω => ∫ x, f (arg p ω x) * Real.exp (u (arg p ω x)) ∂μ :=
+      (((hf.measurable.comp (harg_m p)).mul
+        (hu.measurable.comp (harg_m p)).exp).stronglyMeasurable.integral_prod_right'
+          (ν := μ)).measurable
+    have hden : Measurable fun ω => ∫ x, Real.exp (u (arg p ω x)) ∂μ :=
+      (((hu.measurable.comp (harg_m p)).exp).stronglyMeasurable.integral_prod_right'
+        (ν := μ)).measurable
+    exact (hφ.measurable.comp (hnum.div hden)).aestronglyMeasurable
+  · refine ae_of_all _ fun ω => ?_
+    have hexp_i : Integrable (fun x => Real.exp (u (arg p ω x))) μ :=
+      (integrable_const (1 : ℝ)).mono'
+        (hu.measurable.comp (hmeas_arg p ω)).exp.aestronglyMeasurable (ae_of_all _ fun x => by
+          rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_one_iff]; exact hu0 _)
+    have hden_pos : 0 < ∫ x, Real.exp (u (arg p ω x)) ∂μ :=
+      integral_exp_pos_of_isFiniteMeasure (hu.measurable.comp (hmeas_arg p ω)) fun _ => hu0 _
+    have hnum_i : Integrable (fun x => f (arg p ω x) * Real.exp (u (arg p ω x))) μ :=
+      (integrable_const B).mono'
+        ((hf.measurable.comp (hmeas_arg p ω)).mul
+          (hu.measurable.comp (hmeas_arg p ω)).exp).aestronglyMeasurable
+        (ae_of_all _ fun x => by
+          rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+          exact (mul_le_of_le_one_right (abs_nonneg _)
+            (Real.exp_le_one_iff.2 (hu0 _))).trans (hB _))
+    have hnum_abs : |∫ x, f (arg p ω x) * Real.exp (u (arg p ω x)) ∂μ| ≤
+        B * ∫ x, Real.exp (u (arg p ω x)) ∂μ := by
+      have h1 : |∫ x, f (arg p ω x) * Real.exp (u (arg p ω x)) ∂μ| ≤
+          ∫ x, B * Real.exp (u (arg p ω x)) ∂μ :=
+        (norm_integral_le_integral_norm _).trans (integral_mono hnum_i.norm (hexp_i.const_mul B)
+          fun x => by
+            rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+            exact mul_le_mul_of_nonneg_right (hB _) (Real.exp_pos _).le)
+      simpa only [integral_const_mul] using h1
+    have hratio : |(∫ x, f (arg p ω x) * Real.exp (u (arg p ω x)) ∂μ) /
+        ∫ x, Real.exp (u (arg p ω x)) ∂μ| ≤ B := by
+      rw [abs_div, abs_of_pos hden_pos, div_le_iff₀ hden_pos]
+      exact hnum_abs
+    exact (Real.norm_eq_abs _).trans_le (hBφ _ hratio)
+  · refine hφ.comp (continuous_integral_mul_exp_div_of_isFiniteMeasure
+      (g := fun p x => f (arg p ω x)) (w := fun p x => u (arg p ω x))
+      (fun x => hf.comp (harg_c ω x)) (fun x => hu.comp (harg_c ω x))
+      (fun p => hf.measurable.comp (hmeas_arg p ω))
+      (fun p => hu.measurable.comp (hmeas_arg p ω))
+      (fun _ _ => hB _) (fun _ _ => hu0 _))
+
+end Continuity
+
 end ProbabilityTheory
