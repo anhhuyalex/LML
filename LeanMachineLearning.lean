@@ -812,6 +812,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limi
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityTails
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity

@@ -389,4 +389,145 @@ theorem norm_integral_smul_sub_le_of_integral_dual_sq_le {Ω V : Type*} [Measura
   rw [Real.sqrt_mul' _ (sq_nonneg _), Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul' C hf0]
   ring
 
+/-- **Iterated Cauchy-Schwarz for a two-level expectation:** if `U ω, V ω ∈ L²(μ ω)` for every `ω`
+and `ω ↦ ∫ U² ∂(μ ω)` and `ω ↦ ∫ V² ∂(μ ω)` are integrable under `P` with expectations `≤ α²`
+and `≤ γ²` (`α, γ ≥ 0`), and `ω ↦ ∫ U V ∂(μ ω)` is a.e. strongly measurable, then
+`ω ↦ ∫ U V ∂(μ ω)` is integrable and `|∫ ω, ∫ U V ∂(μ ω) ∂P| ≤ α * γ`. -/
+theorem abs_integral_integral_mul_le_of_integral_sq_le {Ω Γ : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace Γ] {P : Measure Ω} {μ : Ω → Measure Γ}
+    {U V : Ω → Γ → ℝ} (hU2 : ∀ ω, MemLp (U ω) 2 (μ ω)) (hV2 : ∀ ω, MemLp (V ω) 2 (μ ω))
+    (hUVm : AEStronglyMeasurable (fun ω => ∫ x, U ω x * V ω x ∂(μ ω)) P)
+    (hUi : Integrable (fun ω => ∫ x, U ω x ^ 2 ∂(μ ω)) P)
+    (hVi : Integrable (fun ω => ∫ x, V ω x ^ 2 ∂(μ ω)) P)
+    {α γ : ℝ} (hα : 0 ≤ α) (hγ : 0 ≤ γ)
+    (hUb : ∫ ω, ∫ x, U ω x ^ 2 ∂(μ ω) ∂P ≤ α ^ 2)
+    (hVb : ∫ ω, ∫ x, V ω x ^ 2 ∂(μ ω) ∂P ≤ γ ^ 2) :
+    Integrable (fun ω => ∫ x, U ω x * V ω x ∂(μ ω)) P ∧
+      |∫ ω, ∫ x, U ω x * V ω x ∂(μ ω) ∂P| ≤ α * γ := by
+  set sU : Ω → ℝ := fun ω => Real.sqrt (∫ x, U ω x ^ 2 ∂(μ ω))
+  set sV : Ω → ℝ := fun ω => Real.sqrt (∫ x, V ω x ^ 2 ∂(μ ω))
+  have hsU2 : MemLp sU 2 P := by
+    refine (memLp_two_iff_integrable_sq (Continuous.comp_aestronglyMeasurable Real.continuous_sqrt
+      hUi.aestronglyMeasurable)).2 ?_
+    exact hUi.congr (ae_of_all _ fun ω =>
+      (Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)).symm)
+  have hsV2 : MemLp sV 2 P := by
+    refine (memLp_two_iff_integrable_sq (Continuous.comp_aestronglyMeasurable Real.continuous_sqrt
+      hVi.aestronglyMeasurable)).2 ?_
+    exact hVi.congr (ae_of_all _ fun ω =>
+      (Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)).symm)
+  have hpt : ∀ ω, |∫ x, U ω x * V ω x ∂(μ ω)| ≤ sU ω * sV ω := fun ω =>
+    abs_integral_mul_le_of_integral_sq_le (hU2 ω) (hV2 ω) (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
+      (Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)).ge
+      (Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)).ge
+  have hdom : Integrable (fun ω => sU ω * sV ω) P := hsU2.integrable_mul hsV2
+  have hint : Integrable (fun ω => ∫ x, U ω x * V ω x ∂(μ ω)) P :=
+    hdom.mono' hUVm (ae_of_all _ fun ω => (Real.norm_eq_abs _).trans_le (hpt ω))
+  refine ⟨hint, (abs_integral_le_integral_abs.trans
+    (integral_mono hint.abs hdom hpt)).trans ?_⟩
+  refine (le_abs_self _).trans (abs_integral_mul_le_of_integral_sq_le hsU2 hsV2 hα hγ ?_ ?_)
+  · refine (integral_congr_ae (ae_of_all _ fun ω => ?_)).trans_le hUb
+    exact Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)
+  · refine (integral_congr_ae (ae_of_all _ fun ω => ?_)).trans_le hVb
+    exact Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)
+
+/-- **Bounded-part and tail split for a two-level expectation** (model-free core of the calculation
+before Eq. (3.105) in Talagrand): for `F, X ≥ 0` with `𝔼 ⟨X^4⟩ ≤ C_X`, `𝔼 ⟨1_{K₀ ≤ X}⟩ ≤ δ^4` and
+`𝔼 ⟨F^2⟩ ≤ A^2` (`K₀, C_X, δ, A ≥ 0`), one has
+`𝔼 ⟨F * X⟩ ≤ K₀ * 𝔼 ⟨F⟩ + √(√C_X) * δ * A`. -/
+theorem integral_integral_mul_le_add_indicator_tail {Ω Γ : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace Γ] {P : Measure Ω} {μ : Ω → Measure Γ} [∀ ω, IsFiniteMeasure (μ ω)]
+    {F X : Γ → ℝ} (hF0 : ∀ x, 0 ≤ F x) (hX0 : ∀ x, 0 ≤ X x)
+    (hFm : Measurable F) (hXm : Measurable X)
+    (hF2 : ∀ ω, MemLp F 2 (μ ω)) (hX4 : ∀ ω, MemLp X 4 (μ ω))
+    {K₀ C_X δ A : ℝ} (hK₀ : 0 ≤ K₀) (hCX : 0 ≤ C_X) (hδ : 0 ≤ δ) (hA : 0 ≤ A)
+    (hint_m : ∀ {Y : Γ → ℝ}, Measurable Y → AEStronglyMeasurable (fun ω => ∫ x, Y x ∂(μ ω)) P)
+    (hF1i : Integrable (fun ω => ∫ x, F x ∂(μ ω)) P)
+    (hF2i : Integrable (fun ω => ∫ x, F x ^ 2 ∂(μ ω)) P)
+    (hF2b : ∫ ω, ∫ x, F x ^ 2 ∂(μ ω) ∂P ≤ A ^ 2)
+    (hX4i : Integrable (fun ω => ∫ x, X x ^ 4 ∂(μ ω)) P)
+    (hX4b : ∫ ω, ∫ x, X x ^ 4 ∂(μ ω) ∂P ≤ C_X)
+    (hSi : Integrable
+      (fun ω => ∫ x, ({y | K₀ ≤ X y}.indicator (fun _ => (1 : ℝ)) x) ∂(μ ω)) P)
+    (hSb : ∫ ω, ∫ x, ({y | K₀ ≤ X y}.indicator (fun _ => (1 : ℝ)) x) ∂(μ ω) ∂P ≤ δ ^ 4) :
+    Integrable (fun ω => ∫ x, F x * X x ∂(μ ω)) P ∧
+      ∫ ω, ∫ x, F x * X x ∂(μ ω) ∂P ≤
+        K₀ * (∫ ω, ∫ x, F x ∂(μ ω) ∂P) + Real.sqrt (Real.sqrt C_X) * δ * A := by
+  set S : Set Γ := {y | K₀ ≤ X y}
+  have hSm : MeasurableSet S := measurableSet_le measurable_const hXm
+  set Ind : Γ → ℝ := S.indicator fun _ => (1 : ℝ)
+  have hInd_m : Measurable Ind := measurable_const.indicator hSm
+  have hInd_sq : ∀ x, Ind x ^ 2 = Ind x := fun x => by
+    dsimp only [Ind]; by_cases h : x ∈ S <;> simp [h]
+  have hInd2 : ∀ ω, MemLp Ind 2 (μ ω) := fun ω =>
+    memLp_indicator_const 2 hSm.nullMeasurableSet 1 (Or.inr (measure_ne_top (μ ω) _))
+  have hX2_fn_mem : ∀ ω, MemLp (fun x => X x ^ 2) 2 (μ ω) := fun ω => by
+    refine (memLp_two_iff_integrable_sq (hXm.pow_const 2).aestronglyMeasurable).2 ?_
+    have h4 : Integrable (fun x => ‖X x‖ ^ 4) (μ ω) := (hX4 ω).integrable_norm_pow (by norm_num)
+    refine h4.congr (ae_of_all _ fun x => ?_)
+    change ‖X x‖ ^ 4 = (X x ^ 2) ^ 2
+    rw [Real.norm_of_nonneg (hX0 x)]
+    ring
+  have hX2_mem : ∀ ω, MemLp X 2 (μ ω) := fun ω => (hX4 ω).mono_exponent (by norm_num)
+  have hXInd2 : ∀ ω, MemLp (fun x => X x * Ind x) 2 (μ ω) := fun ω => by
+    refine (hX2_mem ω).mono' (hXm.mul hInd_m).aestronglyMeasurable (ae_of_all _ fun x => ?_)
+    dsimp only [Ind]
+    by_cases h : x ∈ S
+    · simp only [Set.indicator_of_mem h, mul_one, Real.norm_of_nonneg (hX0 x), le_rfl]
+    · simp only [Set.indicator_of_notMem h, mul_zero, norm_zero]; exact hX0 x
+  have hX4_eq : ∀ ω, (∫ x, (X x ^ 2) ^ 2 ∂(μ ω)) = ∫ x, X x ^ 4 ∂(μ ω) := fun ω =>
+    integral_congr_ae (ae_of_all _ fun x => by ring)
+  have hX2S := abs_integral_integral_mul_le_of_integral_sq_le
+    (U := fun _ x => X x ^ 2) (V := fun _ x => Ind x) hX2_fn_mem hInd2
+    (hint_m ((hXm.pow_const 2).mul hInd_m))
+    (hX4i.congr (ae_of_all _ fun ω => (hX4_eq ω).symm))
+    (hSi.congr (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun x => (hInd_sq x).symm)))
+    (Real.sqrt_nonneg C_X) (sq_nonneg δ)
+    (by
+      refine (integral_congr_ae (ae_of_all _ hX4_eq)).trans_le ?_
+      rwa [Real.sq_sqrt hCX])
+    (by
+      refine (integral_congr_ae (ae_of_all _ fun ω =>
+        integral_congr_ae (ae_of_all _ fun x => hInd_sq x))).trans_le ?_
+      exact hSb.trans_eq (by ring))
+  have hXInd_sq : ∀ x, (X x * Ind x) ^ 2 = X x ^ 2 * Ind x := fun x => by
+    rw [mul_pow, hInd_sq]
+  have hFXS := abs_integral_integral_mul_le_of_integral_sq_le
+    (U := fun _ => F) (V := fun _ x => X x * Ind x) hF2 hXInd2
+    (hint_m (hFm.mul (hXm.mul hInd_m))) hF2i
+    (hX2S.1.congr (ae_of_all _ fun ω =>
+      integral_congr_ae (ae_of_all _ fun x => (hXInd_sq x).symm)))
+    hA (mul_nonneg (Real.sqrt_nonneg _) hδ) hF2b
+    (by
+      refine (integral_congr_ae (ae_of_all _ fun ω =>
+        integral_congr_ae (ae_of_all _ fun x => hXInd_sq x))).trans_le ?_
+      refine ((le_abs_self _).trans hX2S.2).trans_eq ?_
+      rw [mul_pow, Real.sq_sqrt (Real.sqrt_nonneg _)])
+  have hpt_split : ∀ x, F x * X x ≤ K₀ * F x + F x * (X x * Ind x) := fun x => by
+    dsimp only [Ind]
+    by_cases h : x ∈ S
+    · simp only [Set.indicator_of_mem h, mul_one]
+      exact le_add_of_nonneg_left (mul_nonneg hK₀ (hF0 x))
+    · simp only [Set.indicator_of_notMem h, mul_zero, add_zero, mul_comm K₀]
+      exact mul_le_mul_of_nonneg_left (not_le.1 h).le (hF0 x)
+  have hpt_ω : ∀ ω, ∫ x, F x * X x ∂(μ ω) ≤
+      K₀ * (∫ x, F x ∂(μ ω)) + ∫ x, F x * (X x * Ind x) ∂(μ ω) := fun ω => by
+    have hi1 : Integrable (fun x => K₀ * F x) (μ ω) :=
+      ((hF2 ω).integrable one_le_two).const_mul K₀
+    have hi2 : Integrable (fun x => F x * (X x * Ind x)) (μ ω) :=
+      (hF2 ω).integrable_mul (hXInd2 ω)
+    have hi_lhs : Integrable (fun x => F x * X x) (μ ω) :=
+      (hF2 ω).integrable_mul (hX2_mem ω)
+    refine (integral_mono hi_lhs (hi1.add hi2) hpt_split).trans_eq ?_
+    rw [integral_add' hi1 hi2, integral_const_mul]
+  have hdom_P := (hF1i.const_mul K₀).add hFXS.1
+  have hFXi : Integrable (fun ω => ∫ x, F x * X x ∂(μ ω)) P :=
+    hdom_P.mono' (hint_m (hFm.mul hXm)) (ae_of_all _ fun ω => by
+      rw [Real.norm_of_nonneg (integral_nonneg fun x => mul_nonneg (hF0 x) (hX0 x))]
+      exact hpt_ω ω)
+  refine ⟨hFXi, (integral_mono hFXi hdom_P hpt_ω).trans ?_⟩
+  rw [integral_add' (hF1i.const_mul K₀) hFXS.1, integral_const_mul]
+  have htail := (le_abs_self _).trans hFXS.2
+  linarith
+
 end ProbabilityTheory

@@ -21,6 +21,7 @@ fresh replicas. The constant does not depend on the dimension of the configurati
 ## Main statements
 
 * `MeasureTheory.exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs_le`
+* `MeasureTheory.continuousOn_integral_integral_pi_tilted_prod_gaussianReal_sqrt`
 -/
 
 @[expose] public section
@@ -491,5 +492,414 @@ theorem exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs
   refine (add_le_add (add_le_add (add_le_add (add_le_add (add_le_add b1 b2) b3) b4) b5) b6).trans
     (le_of_eq ?_)
   ring
+
+/-- **Continuity on `[0, 1]` of the disorder-averaged Gibbs expectation along the square-root
+cavity path** (including the endpoints `v = 0` and `v = 1` where `√v` and `√(1 - v)` are continuous
+but not differentiable). -/
+theorem continuousOn_integral_integral_pi_tilted_prod_gaussianReal_sqrt
+    {Ω : Type*} [MeasurableSpace Ω] (P₀ : Measure Ω) [Fintype K] [Fintype R]
+    {κ : ℝ} (hκ : 0 < κ) {B₀ c₀ : Ω → ℝ} (hB₀ : ∀ ω, 0 ≤ B₀ ω)
+    (hmom : ∀ deg : ℕ, Integrable (fun ω => (1 + B₀ ω + c₀ ω) ^ deg) P₀)
+    {E₀ : Ω → E → ℝ} (hE₀m : Measurable fun p : Ω × E => E₀ p.1 p.2)
+    (hE₀_conf : ∀ ω x, E₀ ω x ≤ B₀ ω * ‖x‖ - κ * ‖x‖ ^ 2)
+    (hE₀_low : ∀ ω x, ‖x‖ ≤ 1 → -c₀ ω ≤ E₀ ω x)
+    (X : E → K → ℝ) (Y : K → ℝ) (hXm : ∀ k, Measurable fun x => X x k)
+    {L_X : ℝ} {n_X : ℕ} (hXb : ∀ k x, |X x k| ≤ L_X * (1 + ‖x‖) ^ n_X)
+    (c_ξ : ℝ) {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0)
+    {D₁ : ℝ} (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    (ψ : R → ℝ → ℝ) (hψc : ∀ r, Continuous (ψ r)) {M₀ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    {f : (R → E) → ℝ} (hf : Measurable f) {C_f : ℝ} {m_f : ℕ}
+    (hfb : ∀ a, |f a| ≤ C_f * ∏ r, (1 + ‖a r‖) ^ m_f) :
+    let γ_sh := Measure.pi fun _ : K => gaussianReal 0 1
+    let S (v : ℝ) (w : K → ℝ) (p : E × ℝ) : ℝ :=
+      Real.sqrt v * (X p.1 ⬝ᵥ w) + Real.sqrt (1 - v) * (Y ⬝ᵥ w + c_ξ * p.2)
+    let ν (v : ℝ) (ω : Ω) (w : K → ℝ) : Measure (E × ℝ) :=
+      (μ.prod (gaussianReal 0 1)).tilted (fun p => E₀ ω p.1 + u (S v w p))
+    ContinuousOn
+      (fun v => ∫ ω, ∫ w, ∫ σ : R → E × ℝ, f (fun r => (σ r).1) * ∏ r, ψ r (S v w (σ r))
+        ∂(Measure.pi fun _ : R => ν v ω w) ∂γ_sh ∂P₀)
+      (Icc 0 1) := by
+  intro γ_sh S ν v₀ _
+  have hum : Measurable u := hu.continuous.measurable
+  have huc : Continuous u := hu.continuous
+  have hc₀ : ∀ ω, 0 ≤ c₀ ω := fun ω => nonneg_of_confining_of_neg_le (hE₀_conf ω) (hE₀_low ω)
+  set C_tot : ℝ := |C_f| * |M₀| ^ Fintype.card R
+  have hCtot0 : 0 ≤ C_tot := by positivity
+  set G_v : ℝ → (K → ℝ) → (R → E × ℝ) → ℝ :=
+    fun v w σ => f (fun r => (σ r).1) * ∏ r, ψ r (S v w (σ r))
+  have hGvm : ∀ v, Measurable fun p : (K → ℝ) × (R → E × ℝ) => G_v v p.1 p.2 := fun v => by
+    have h1 : Measurable fun p : (K → ℝ) × (R → E × ℝ) => f (fun r => (p.2 r).1) :=
+      hf.comp (measurable_pi_iff.2 fun r =>
+        measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
+    have hS_m : ∀ r : R, Measurable fun p : (K → ℝ) × (R → E × ℝ) => S v p.1 (p.2 r) := fun r => by
+      have hdot : Measurable fun p : (K → ℝ) × (R → E × ℝ) => X (p.2 r).1 ⬝ᵥ p.1 :=
+        Finset.measurable_sum _ fun k _ =>
+          ((hXm k).comp (measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))).mul
+            ((measurable_pi_apply k).comp measurable_fst)
+      have hYdot : Measurable fun p : (K → ℝ) × (R → E × ℝ) => Y ⬝ᵥ p.1 :=
+        Finset.measurable_sum _ fun k _ =>
+          measurable_const.mul ((measurable_pi_apply k).comp measurable_fst)
+      have h2 : Measurable fun p : (K → ℝ) × (R → E × ℝ) => Y ⬝ᵥ p.1 + c_ξ * (p.2 r).2 :=
+        hYdot.add
+          ((measurable_snd.comp ((measurable_pi_apply r).comp measurable_snd)).const_mul c_ξ)
+      exact (hdot.const_mul _).add (h2.const_mul _)
+    exact h1.mul (Finset.measurable_prod _ fun r _ => (hψc r).measurable.comp (hS_m r))
+  have hGvb : ∀ v w σ, |G_v v w σ| ≤ C_tot * ∏ r, (1 + ‖σ r‖) ^ m_f := fun v w σ => by
+    dsimp only [G_v, C_tot]
+    rw [abs_mul]
+    have h1 : |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
+      abs_comp_le_prod_of_injective hfb norm_fst_le injective_id σ
+    have h2 : |∏ r, ψ r (S v w (σ r))| ≤ |M₀| ^ Fintype.card R :=
+      Finset.univ.abs_prod_le_pow_card fun r _ => (hM₀ r _).trans (le_abs_self _)
+    exact (mul_le_mul h1 h2 (abs_nonneg _)
+      (mul_nonneg (abs_nonneg _) (Finset.prod_nonneg fun _ _ => by positivity))).trans_eq (by ring)
+  -- 1. Continuity at fixed `(ω, w)`
+  have hpt_vw : ∀ ω (w : K → ℝ), ContinuousWithinAt
+      (fun v => ∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w)) (Icc 0 1) v₀ := by
+    intro ω w
+    have hEω : Measurable (E₀ ω) := hE₀m.comp (measurable_const.prodMk measurable_id)
+    set μ₁ := μ.prod (gaussianReal 0 1)
+    set μ_R := Measure.pi fun _ : R => μ₁
+    set e_vw : ℝ → E × ℝ → ℝ := fun v p => E₀ ω p.1 + u (S v w p)
+    have hem : ∀ v, Measurable (e_vw v) := fun v => by
+      have hSv : Measurable (S v w) := by
+        have h1 : Measurable fun p : E × ℝ => X p.1 ⬝ᵥ w :=
+          Finset.measurable_sum _ fun k _ => ((hXm k).comp measurable_fst).mul_const (w k)
+        have h2 : Measurable fun p : E × ℝ => Y ⬝ᵥ w + c_ξ * p.2 :=
+          measurable_const.add (measurable_snd.const_mul c_ξ)
+        exact (h1.const_mul _).add (h2.const_mul _)
+      exact (hEω.comp measurable_fst).add (hum.comp hSv)
+    have hdom_1 : ∀ m : ℕ, Integrable (fun p : E × ℝ => (1 + ‖p‖) ^ m * Real.exp (E₀ ω p.1)) μ₁ :=
+      fun m => by
+        have h_x : Integrable (fun x : E => (1 + ‖x‖) ^ m *
+            Real.exp (B₀ ω * ‖x‖ - κ * ‖x‖ ^ 2)) μ :=
+          integrable_one_add_norm_pow_mul_exp (μ := μ) hκ (B₀ ω) m
+        have h_ξ : Integrable (fun ξ : ℝ => (1 + |ξ|) ^ m) (gaussianReal 0 1) := by
+          have hm1 : MemLp (fun ξ : ℝ => 1 + |ξ|) m (gaussianReal 0 1) :=
+            (memLp_const 1).add (memLp_id_gaussianReal m).abs
+          exact hm1.integrable_norm_pow'.congr (ae_of_all _ fun ξ => by
+            change ‖1 + |ξ|‖ ^ m = (1 + |ξ|) ^ m
+            rw [Real.norm_of_nonneg (by positivity)])
+        have hprod := h_x.mul_prod h_ξ
+        refine hprod.mono' (((measurable_const.add measurable_norm).pow_const m).mul
+          (hEω.comp measurable_fst).exp).aestronglyMeasurable (ae_of_all _ fun p => ?_)
+        rw [Real.norm_of_nonneg (by positivity)]
+        have hp_norm : 1 + ‖p‖ ≤ (1 + ‖p.1‖) * (1 + |p.2|) := by
+          have hmax : ‖p‖ ≤ ‖p.1‖ + |p.2| := by
+            change max ‖p.1‖ ‖p.2‖ ≤ ‖p.1‖ + |p.2|
+            rw [Real.norm_eq_abs]
+            exact max_le (le_add_of_nonneg_right (abs_nonneg _))
+              (le_add_of_nonneg_left (norm_nonneg _))
+          nlinarith [norm_nonneg p.1, abs_nonneg p.2]
+        have hpow := pow_le_pow_left₀ (by positivity) hp_norm m
+        have hexp : Real.exp (E₀ ω p.1) ≤ Real.exp (B₀ ω * ‖p.1‖ - κ * ‖p.1‖ ^ 2) :=
+          Real.exp_le_exp.2 (hE₀_conf ω p.1)
+        calc (1 + ‖p‖) ^ m * Real.exp (E₀ ω p.1)
+            ≤ ((1 + ‖p.1‖) * (1 + |p.2|)) ^ m * Real.exp (B₀ ω * ‖p.1‖ - κ * ‖p.1‖ ^ 2) :=
+              mul_le_mul hpow hexp (Real.exp_pos _).le (by positivity)
+          _ = ((1 + ‖p.1‖) ^ m * Real.exp (B₀ ω * ‖p.1‖ - κ * ‖p.1‖ ^ 2)) * (1 + |p.2|) ^ m := by
+              rw [mul_pow]; ring
+    have hnum_c : ∀ {Φ : ℝ → (R → E × ℝ) → ℝ} {C_Φ : ℝ} {m : ℕ},
+        (∀ v, Measurable (Φ v)) → (∀ σ, Continuous fun v => Φ v σ) →
+        (∀ v σ, |Φ v σ| ≤ C_Φ * ∏ r, (1 + ‖σ r‖) ^ m) →
+        ContinuousWithinAt
+          (fun v => ∫ σ : R → E × ℝ, Φ v σ * Real.exp (∑ r, e_vw v (σ r)) ∂μ_R) (Icc 0 1) v₀ := by
+      intro Φ C_Φ m hΦm hΦc hΦb
+      set b_R : (R → E × ℝ) → ℝ := fun σ => |C_Φ| * ∏ r, (1 + ‖σ r‖) ^ m * Real.exp (E₀ ω (σ r).1)
+      have hb_int : Integrable b_R μ_R :=
+        (Integrable.fintype_prod (f := fun _ : R => fun p : E × ℝ =>
+          (1 + ‖p‖) ^ m * Real.exp (E₀ ω p.1)) fun _ => hdom_1 m).const_mul |C_Φ|
+      refine continuousWithinAt_of_dominated
+        (F := fun v σ => Φ v σ * Real.exp (∑ r, e_vw v (σ r))) (bound := b_R)
+        (Eventually.of_forall fun v =>
+          ((hΦm v).mul (Finset.measurable_sum _ fun r _ =>
+            (hem v).comp (measurable_pi_apply r)).exp).aestronglyMeasurable)
+        (Eventually.of_forall fun v => ae_of_all _ fun σ => ?_) hb_int (ae_of_all _ fun σ => ?_)
+      · rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _), Real.exp_sum]
+        have h1 : |Φ v σ| ≤ |C_Φ| * ∏ r, (1 + ‖σ r‖) ^ m :=
+          (hΦb v σ).trans (mul_le_mul_of_nonneg_right (le_abs_self _)
+            (Finset.prod_nonneg fun _ _ => by positivity))
+        have h2 : ∏ r, Real.exp (e_vw v (σ r)) ≤ ∏ r, Real.exp (E₀ ω (σ r).1) :=
+          Finset.prod_le_prod₀ (fun _ _ => (Real.exp_pos _).le) fun r _ =>
+            Real.exp_le_exp.2 (add_le_of_nonpos_right (hu0 _))
+        refine (mul_le_mul h1 h2 (by positivity) (by positivity)).trans_eq ?_
+        dsimp only [b_R]; rw [mul_assoc, Finset.prod_mul_distrib]
+      · have hc_fn : Continuous fun v : ℝ => Φ v σ * Real.exp (∑ r, e_vw v (σ r)) := by
+          refine (hΦc σ).mul ?_
+          dsimp only [e_vw, S]; fun_prop
+        exact hc_fn.continuousWithinAt
+    have hc_num := hnum_c (Φ := fun v => G_v v w)
+      (fun v => (hGvm v).comp (measurable_const.prodMk measurable_id))
+      (fun σ => by
+        dsimp only [G_v, S]
+        fun_prop)
+      (fun v => hGvb v w)
+    have hc_den := hnum_c (Φ := fun _ _ => (1 : ℝ)) (C_Φ := 1) (m := 0)
+      (fun _ => measurable_const) (fun _ => continuous_const) (fun _ _ => by simp)
+    simp only [one_mul] at hc_den
+    have hZ_pos : 0 < ∫ σ : R → E × ℝ, Real.exp (∑ r, e_vw v₀ (σ r)) ∂μ_R := by
+      rw [integral_pi_exp_sum (μ := μ₁)]
+      refine pow_pos (integral_exp_pos ?_) _
+      refine (hdom_1 0).mono' (hem v₀).exp.aestronglyMeasurable (ae_of_all _ fun p => ?_)
+      simp only [pow_zero, one_mul, Real.norm_of_nonneg (Real.exp_pos _).le]
+      exact Real.exp_le_exp.2 (add_le_of_nonpos_right (hu0 _))
+    have heq : (fun v => ∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w)) =
+        fun v => (∫ σ : R → E × ℝ, G_v v w σ * Real.exp (∑ r, e_vw v (σ r)) ∂μ_R) /
+          ∫ σ : R → E × ℝ, Real.exp (∑ r, e_vw v (σ r)) ∂μ_R := by
+      funext v; rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
+    rw [heq]
+    exact hc_num.div hc_den hZ_pos.ne'
+  -- 2. Dominated convergence over `w` (`γ_sh`) for each `ω`
+  obtain ⟨A_m, hAm0, hIm⟩ :=
+    exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal (K := K) (ι := R) μ hκ m_f
+  set s_Y : ℝ := ∑ k : K, |Y k|
+  have hsY0 : 0 ≤ s_Y := Finset.sum_nonneg fun _ _ => abs_nonneg _
+  set s_A : ℝ := |L_X| * 2 ^ n_X + s_Y
+  have hs_A : 0 ≤ s_A := by positivity
+  set deg : ℕ := m_f * Fintype.card R
+  set W_fac : (K → ℝ) → ℝ := fun w =>
+    1 + |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_ξ|) + 1 / 2
+  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh := by
+    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
+      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
+        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
+    have h_eq : W_fac = fun w =>
+        (1 + |u 0| + |D₁| * |c_ξ| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
+      funext w; dsimp only [W_fac]; ring
+    have hmem : MemLp W_fac deg γ_sh := by
+      rw [h_eq]
+      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
+    refine hmem.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
+    dsimp only [W_fac]
+    rw [Real.norm_eq_abs, abs_of_nonneg]
+    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    positivity
+  have hpt_ω : ∀ ω, ContinuousWithinAt
+      (fun v => ∫ w, ∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w) ∂γ_sh)
+      (Icc 0 1) v₀ := by
+    intro ω
+    have hEω_m : Measurable (E₀ ω) := hE₀m.comp (measurable_const.prodMk measurable_id)
+    set b_w : (K → ℝ) → ℝ := fun w =>
+      (C_tot * A_m ^ Fintype.card R * (1 + B₀ ω + c₀ ω) ^ deg) * W_fac w ^ deg
+    have hbw_int : Integrable b_w γ_sh := hWfac_int.const_mul _
+    have hw_meas_bd : ∀ v ∈ Icc (0 : ℝ) 1,
+        AEStronglyMeasurable
+          (fun w => ∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w)) γ_sh ∧
+        ∀ w, |∫ σ : R → E × ℝ, G_v v w σ ∂(Measure.pi fun _ : R => ν v ω w)| ≤ b_w w := by
+      rintro v ⟨hv0_l, hv1_u⟩
+      set A_v : E → K → ℝ := fun x k => Real.sqrt v * X x k + Real.sqrt (1 - v) * Y k
+      set c_v : ℝ := Real.sqrt (1 - v) * c_ξ
+      have hS_Av : ∀ w p, S v w p = A_v p.1 ⬝ᵥ w + c_v * p.2 := fun w p => by
+        dsimp only [S, A_v, c_v, dotProduct]
+        simp only [add_mul, Finset.sum_add_distrib, mul_assoc, ← Finset.mul_sum]
+        ring
+      have hAvm : ∀ k, Measurable fun x => A_v x k := fun k =>
+        ((hXm k).const_mul _).add measurable_const
+      have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A := fun k x hx => by
+        have hs1 : Real.sqrt v ≤ 1 := Real.sqrt_le_one.2 hv1_u
+        have hs2 : Real.sqrt (1 - v) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
+        have hX1 : |X x k| ≤ |L_X| * 2 ^ n_X :=
+          (hXb k x).trans (mul_le_mul (le_abs_self _)
+            (pow_le_pow_left₀ (by positivity) (by linarith : 1 + ‖x‖ ≤ 2) _)
+            (by positivity) (abs_nonneg _))
+        have hY1 : |Y k| ≤ s_Y :=
+          Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
+        dsimp only [A_v]
+        refine (abs_add_le _ _).trans ?_
+        rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _),
+          abs_of_nonneg (Real.sqrt_nonneg _)]
+        calc Real.sqrt v * |X x k| + Real.sqrt (1 - v) * |Y k|
+            ≤ 1 * (|L_X| * 2 ^ n_X) + 1 * s_Y :=
+              add_le_add (mul_le_mul hs1 hX1 (abs_nonneg _) zero_le_one)
+                (mul_le_mul hs2 hY1 (abs_nonneg _) zero_le_one)
+          _ = s_A := by dsimp only [s_A]; ring
+      have hcv_le : |c_v| ≤ |c_ξ| := by
+        dsimp only [c_v]
+        rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+        exact mul_le_of_le_one_left (abs_nonneg _) (Real.sqrt_le_one.2 (by linarith))
+      have hres := hIm (hB₀ ω) (hc₀ ω) hEω_m (hE₀_conf ω) (hE₀_low ω) A_v hAvm hs_A hAv_low c_v
+        hu hu0 hD₁ (hGvm v) hCtot0 le_rfl
+        (fun w σ => by simpa only [zero_mul, add_zero] using hGvb v w σ)
+      have hν_Av : ∀ w, ν v ω w = (μ.prod (gaussianReal 0 1)).tilted
+          (fun p => E₀ ω p.1 + u (A_v p.1 ⬝ᵥ w + c_v * p.2)) := by
+        intro w; dsimp only [ν]; simp_rw [hS_Av]
+      refine ⟨by simpa only [← hν_Av] using hres.2.aestronglyMeasurable, fun w => ?_⟩
+      have hw1 := hres.1 w
+      simp only [zero_mul, add_zero, ← hν_Av w] at hw1
+      refine hw1.trans ?_
+      have hbase_prod :
+          1 + B₀ ω + (c₀ ω + (|u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_v|)) + 1 / 2) ≤
+          (1 + B₀ ω + c₀ ω) * W_fac w := by
+        dsimp only [W_fac]
+        have hw_nn : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+        have hBc : 0 ≤ B₀ ω + c₀ ω := add_nonneg (hB₀ ω) (hc₀ ω)
+        have hU_nn : 0 ≤ |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_ξ|) + 1 / 2 := by positivity
+        have hcv_d := mul_le_mul_of_nonneg_left hcv_le (abs_nonneg D₁)
+        nlinarith [mul_nonneg hBc hU_nn]
+      have hpow_le := pow_le_pow_left₀ (by
+        have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+        have := hB₀ ω; have := hc₀ ω; positivity) hbase_prod deg
+      rw [mul_pow] at hpow_le
+      calc C_tot * A_m ^ Fintype.card R *
+              (1 + B₀ ω + (c₀ ω + (|u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_v|)) + 1 / 2)) ^ deg
+          ≤ C_tot * A_m ^ Fintype.card R * ((1 + B₀ ω + c₀ ω) ^ deg * W_fac w ^ deg) :=
+            mul_le_mul_of_nonneg_left hpow_le (by positivity)
+        _ = b_w w := by dsimp only [b_w]; ring
+    exact continuousWithinAt_of_dominated (bound := b_w)
+      (eventually_nhdsWithin_of_forall fun v hv => (hw_meas_bd v hv).1)
+      (eventually_nhdsWithin_of_forall fun v hv => ae_of_all _ fun w =>
+        (Real.norm_eq_abs _).trans_le ((hw_meas_bd v hv).2 w))
+      hbw_int (ae_of_all _ fun w => hpt_vw ω w)
+  -- 3. Dominated convergence over `ω` (`P₀`)
+  obtain ⟨C_dom, hCdom0, hJ⟩ := measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal
+    (ι := R) μ P₀ hκ hB₀ hc₀ hmom hE₀m hE₀_conf hE₀_low X Y hXm hXb c_ξ hu hu0 hD₁ m_f
+  exact continuousWithinAt_of_dominated
+    (bound := fun ω => C_tot * C_dom * (1 + B₀ ω + c₀ ω) ^ deg)
+    (eventually_nhdsWithin_of_forall fun v hv =>
+      (hJ hv.1 hv.2 (hGvm v) hCtot0 (hGvb v)).1.aestronglyMeasurable)
+    (eventually_nhdsWithin_of_forall fun v hv => ae_of_all _ fun ω => by
+      rw [Real.norm_eq_abs]
+      exact (hJ hv.1 hv.2 (hGvm v) hCtot0 (hGvb v)).2.1 ω)
+    ((hmom deg).const_mul _)
+    (ae_of_all _ hpt_ω)
+
+/-- **Joint integrability on `P₀.prod γ_sh`** of the quenched replica average at `v ∈ [0, 1]`, for
+Fubini between `P₀` and `γ_sh`. -/
+theorem integrable_prod_pi_tilted_prod_gaussianReal_sqrt
+    {Ω ι : Type*} [MeasurableSpace Ω] (P₀ : Measure Ω) [Fintype K] [Fintype ι]
+    {κ : ℝ} (hκ : 0 < κ) {B₀ c₀ : Ω → ℝ} (hB₀ : ∀ ω, 0 ≤ B₀ ω)
+    (hmom : ∀ deg : ℕ, Integrable (fun ω => (1 + B₀ ω + c₀ ω) ^ deg) P₀)
+    {E₀ : Ω → E → ℝ} (hE₀m : Measurable fun p : Ω × E => E₀ p.1 p.2)
+    (hE₀_conf : ∀ ω x, E₀ ω x ≤ B₀ ω * ‖x‖ - κ * ‖x‖ ^ 2)
+    (hE₀_low : ∀ ω x, ‖x‖ ≤ 1 → -c₀ ω ≤ E₀ ω x)
+    (X : E → K → ℝ) (Y : K → ℝ) (hXm : ∀ k, Measurable fun x => X x k)
+    {L_X : ℝ} {n_X : ℕ} (hXb : ∀ k x, |X x k| ≤ L_X * (1 + ‖x‖) ^ n_X)
+    (c_ξ : ℝ) {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0)
+    {D₁ : ℝ} (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    {v : ℝ} (hv0 : 0 ≤ v) (hv1 : v ≤ 1)
+    {G : (K → ℝ) → (ι → E × ℝ) → ℝ}
+    (hGm : Measurable fun p : (K → ℝ) × (ι → E × ℝ) => G p.1 p.2)
+    {C_G : ℝ} {m : ℕ} (hGb : ∀ w σ, |G w σ| ≤ C_G * ∏ o, (1 + ‖σ o‖) ^ m) :
+    let γ_sh := Measure.pi fun _ : K => gaussianReal 0 1
+    let S (w : K → ℝ) (p : E × ℝ) : ℝ :=
+      Real.sqrt v * (X p.1 ⬝ᵥ w) + Real.sqrt (1 - v) * (Y ⬝ᵥ w + c_ξ * p.2)
+    Integrable
+      (fun p : Ω × (K → ℝ) => ∫ σ : ι → E × ℝ, G p.2 σ
+        ∂(Measure.pi fun _ : ι =>
+          (μ.prod (gaussianReal 0 1)).tilted fun q => E₀ p.1 q.1 + u (S p.2 q)))
+      (P₀.prod γ_sh) := by
+  intro γ_sh S
+  have hum : Measurable u := hu.continuous.measurable
+  have hc₀ : ∀ ω, 0 ≤ c₀ ω := fun ω => nonneg_of_confining_of_neg_le (hE₀_conf ω) (hE₀_low ω)
+  have hGb' : ∀ w σ, |G w σ| ≤ |C_G| * ∏ o, (1 + ‖σ o‖) ^ m := fun w σ =>
+    (hGb w σ).trans (mul_le_mul_of_nonneg_right (le_abs_self _)
+      (Finset.prod_nonneg fun _ _ => by positivity))
+  set A_v : E → K → ℝ := fun x k => Real.sqrt v * X x k + Real.sqrt (1 - v) * Y k
+  set c_v : ℝ := Real.sqrt (1 - v) * c_ξ
+  have hS_Av : ∀ w p, S w p = A_v p.1 ⬝ᵥ w + c_v * p.2 := fun w p => by
+    dsimp only [S, A_v, c_v, dotProduct]
+    simp only [add_mul, Finset.sum_add_distrib, mul_assoc, ← Finset.mul_sum]
+    ring
+  have hAvm : ∀ k, Measurable fun x => A_v x k := fun k =>
+    ((hXm k).const_mul _).add measurable_const
+  set s_Y : ℝ := ∑ k : K, |Y k|
+  have hsY0 : 0 ≤ s_Y := Finset.sum_nonneg fun _ _ => abs_nonneg _
+  set s_A : ℝ := |L_X| * 2 ^ n_X + s_Y
+  have hs_A : 0 ≤ s_A := by positivity
+  have hAv_low : ∀ k x, ‖x‖ ≤ 1 → |A_v x k| ≤ s_A := fun k x hx => by
+    have hs1 : Real.sqrt v ≤ 1 := Real.sqrt_le_one.2 hv1
+    have hs2 : Real.sqrt (1 - v) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
+    have hX1 : |X x k| ≤ |L_X| * 2 ^ n_X :=
+      (hXb k x).trans (mul_le_mul (le_abs_self _)
+        (pow_le_pow_left₀ (by positivity) (by linarith : 1 + ‖x‖ ≤ 2) _)
+        (by positivity) (abs_nonneg _))
+    have hY1 : |Y k| ≤ s_Y :=
+      Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
+    dsimp only [A_v]
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
+    calc Real.sqrt v * |X x k| + Real.sqrt (1 - v) * |Y k|
+        ≤ 1 * (|L_X| * 2 ^ n_X) + 1 * s_Y :=
+          add_le_add (mul_le_mul hs1 hX1 (abs_nonneg _) zero_le_one)
+            (mul_le_mul hs2 hY1 (abs_nonneg _) zero_le_one)
+      _ = s_A := by dsimp only [s_A]; ring
+  set H_fn : Ω × (K → ℝ) → ℝ := fun p => ∫ σ : ι → E × ℝ, G p.2 σ
+    ∂(Measure.pi fun _ : ι =>
+      (μ.prod (gaussianReal 0 1)).tilted fun q => E₀ p.1 q.1 + u (S p.2 q))
+  have hHm : Measurable H_fn := by
+    have hν_eq : ∀ ω w,
+        (μ.prod (gaussianReal 0 1)).tilted (fun q : E × ℝ => E₀ ω q.1 + u (S w q)) =
+        (μ.prod (volume : Measure ℝ)).tilted
+          (fun q : E × ℝ => E₀ ω q.1 + u (S w q) - q.2 ^ 2 / 2) :=
+      fun _ _ => tilted_prod_gaussianReal_zero_one μ _
+    have he_joint : Measurable fun q : (Ω × (K → ℝ)) × (E × ℝ) =>
+        E₀ q.1.1 q.2.1 + u (S q.1.2 q.2) - q.2.2 ^ 2 / 2 := by
+      have hE1 : Measurable fun q : (Ω × (K → ℝ)) × (E × ℝ) => E₀ q.1.1 q.2.1 :=
+        hE₀m.comp ((measurable_fst.comp measurable_fst).prodMk (measurable_fst.comp measurable_snd))
+      have hS1 : Measurable fun q : (Ω × (K → ℝ)) × (E × ℝ) => S q.1.2 q.2 := by
+        simp_rw [hS_Av]
+        have hdot : Measurable fun q : (Ω × (K → ℝ)) × (E × ℝ) => A_v q.2.1 ⬝ᵥ q.1.2 :=
+          Finset.measurable_sum _ fun k _ =>
+            ((hAvm k).comp (measurable_fst.comp measurable_snd)).mul
+              ((measurable_pi_apply k).comp (measurable_snd.comp measurable_fst))
+        exact hdot.add ((measurable_snd.comp measurable_snd).const_mul c_v)
+      exact (hE1.add (hum.comp hS1)).sub
+        (((measurable_snd.comp measurable_snd).pow_const 2).div_const 2)
+    have hH_eq : H_fn = fun p => ∫ σ : ι → E × ℝ, G p.2 σ
+        ∂(Measure.pi fun _ : ι =>
+          (μ.prod (volume : Measure ℝ)).tilted
+            (fun q => E₀ p.1 q.1 + u (S p.2 q) - q.2 ^ 2 / 2)) := by
+      funext p; dsimp only [H_fn]; simp_rw [hν_eq p.1 p.2]
+    rw [hH_eq]
+    exact measurable_integral_pi_tilted_of_sigmaFinite
+      (μ' := μ.prod (volume : Measure ℝ)) he_joint
+      (hGm.comp ((measurable_snd.comp measurable_fst).prodMk measurable_snd))
+  obtain ⟨A_m, hAm0, hIm⟩ :=
+    exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal (K := K) (ι := ι) μ hκ m
+  set deg : ℕ := m * Fintype.card ι
+  set W_fac : (K → ℝ) → ℝ := fun w =>
+    1 + |u 0| + |D₁| * (s_A * (∑ k, |w k|) + |c_v|) + 1 / 2
+  have hWfac_int : Integrable (fun w => W_fac w ^ deg) γ_sh := by
+    have hk : ∀ k : K, MemLp (fun w : K → ℝ => |w k|) deg γ_sh := fun k =>
+      ((memLp_id_gaussianReal (μ := 0) (v := 1) deg).comp_measurePreserving
+        (measurePreserving_eval (fun _ : K => gaussianReal 0 1) k)).abs
+    have h_eq : W_fac = fun w =>
+        (1 + |u 0| + |D₁| * |c_v| + 1 / 2) + (|D₁| * s_A) * ∑ k, |w k| := by
+      funext w; dsimp only [W_fac]; ring
+    have hmem : MemLp W_fac deg γ_sh := by
+      rw [h_eq]
+      exact (memLp_const _).add ((memLp_finsetSum _ fun k _ => hk k).const_mul _)
+    refine hmem.integrable_norm_pow'.congr (ae_of_all _ fun w => ?_)
+    change ‖W_fac w‖ ^ deg = W_fac w ^ deg
+    dsimp only [W_fac]
+    rw [Real.norm_of_nonneg]
+    have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    positivity
+  have hdom_prod : Integrable
+      (fun p : Ω × (K → ℝ) =>
+        (|C_G| * A_m ^ Fintype.card ι) * ((1 + B₀ p.1 + c₀ p.1) ^ deg * W_fac p.2 ^ deg))
+      (P₀.prod γ_sh) :=
+    ((hmom deg).mul_prod hWfac_int).const_mul _
+  refine hdom_prod.mono' hHm.aestronglyMeasurable (ae_of_all _ fun p => ?_)
+  rw [Real.norm_eq_abs]
+  have hEω_m : Measurable (E₀ p.1) := hE₀m.comp (measurable_const.prodMk measurable_id)
+  have hw1 := (hIm (hB₀ p.1) (hc₀ p.1) hEω_m (hE₀_conf p.1) (hE₀_low p.1)
+    A_v hAvm hs_A hAv_low c_v hu hu0 hD₁ hGm (abs_nonneg C_G) le_rfl
+    (fun w σ => by simpa only [zero_mul, add_zero] using hGb' w σ)).1 p.2
+  simp only [zero_mul, add_zero, ← hS_Av] at hw1
+  refine hw1.trans ?_
+  have hbase_prod :
+      1 + B₀ p.1 + (c₀ p.1 + (|u 0| + |D₁| * (s_A * (∑ k, |p.2 k|) + |c_v|)) + 1 / 2) ≤
+      (1 + B₀ p.1 + c₀ p.1) * W_fac p.2 := by
+    dsimp only [W_fac]
+    have hw_nn : 0 ≤ ∑ k, |p.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have hBc : 0 ≤ B₀ p.1 + c₀ p.1 := add_nonneg (hB₀ p.1) (hc₀ p.1)
+    have hU_nn : 0 ≤ |u 0| + |D₁| * (s_A * (∑ k, |p.2 k|) + |c_v|) + 1 / 2 := by positivity
+    nlinarith [mul_nonneg hBc hU_nn]
+  have hpow_le := pow_le_pow_left₀ (by
+    have : 0 ≤ ∑ k, |p.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have := hB₀ p.1; have := hc₀ p.1; positivity) hbase_prod deg
+  rw [mul_pow] at hpow_le
+  exact (mul_le_mul_of_nonneg_left hpow_le (by positivity)).trans_eq (by ring)
 
 end MeasureTheory

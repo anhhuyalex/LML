@@ -33,6 +33,9 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
   proportional to `exp (U v - κ ‖v‖² + ⟪a, v⟫)` satisfies
   `∫ exp (κ ‖v‖² / 2) ≤ Z⁻¹ (2 π / κ) ^ (d / 2) exp (‖a‖² / (2 κ))`
   (Talagrand, *Spin Glasses*, Vol. I, Lemma 3.1.5).
+* `inv_integral_exp_add_neg_mul_sq_norm_add_inner_le` and
+  `integral_exp_half_sq_norm_tilted_le_two_rpow`: Jensen lower bound on the normalizer `Z` and
+  dimension-free-scale exponential moment `⟨exp (κ ‖v‖² / 2)⟩ ≤ 2^{d/2} exp (‖a‖² / (2 κ) - 𝔼 U)`.
 -/
 
 @[expose] public section
@@ -250,6 +253,104 @@ theorem integral_exp_half_sq_norm_tilted_le (hU : Measurable U) (hU0 : ∀ v, U 
   · field_simp
   · congr 1
     ring
+
+/-- **Jensen bound on the inverse normalizer** (model-free core of Talagrand, Lemma 3.1.6): if
+`U ≤ 0` is measurable, `κ > 0`, and `z ↦ U (z / √(2 κ))` is integrable under `stdGaussian E`, then
+`(∫ exp (U v - κ ‖v‖² + ⟪a, v⟫))⁻¹ ≤ (κ / π) ^ (d / 2) exp (-𝔼 U (z / √(2 κ)))`. -/
+theorem inv_integral_exp_add_neg_mul_sq_norm_add_inner_le (hU : Measurable U)
+    (hU0 : ∀ v, U v ≤ 0) (hκ : 0 < κ) (a : E)
+    (hUi : Integrable (fun z : E => U ((Real.sqrt (2 * κ))⁻¹ • z)) (stdGaussian E)) :
+    (∫ v : E, Real.exp (U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫))⁻¹ ≤
+      (κ / π) ^ ((finrank ℝ E : ℝ) / 2) *
+        Real.exp (-(∫ z : E, U ((Real.sqrt (2 * κ))⁻¹ • z) ∂stdGaussian E)) := by
+  set c : ℝ := (Real.sqrt (2 * κ))⁻¹
+  set Y : E → ℝ := fun z => U (c • z) + ⟪a, c • z⟫
+  have hZ : ∫ v : E, Real.exp (U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫) =
+      (π / κ) ^ ((finrank ℝ E : ℝ) / 2) * ∫ z : E, Real.exp (Y z) ∂stdGaussian E := by
+    have e : ∀ v : E, Real.exp (U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫) =
+        Real.exp (U v + ⟪a, v⟫) * Real.exp (-κ * ‖v‖ ^ 2) := fun v => by
+      rw [← Real.exp_add]; congr 1; ring
+    simp_rw [e]
+    exact integral_mul_exp_neg_mul_sq_norm hκ (fun v : E => Real.exp (U v + ⟪a, v⟫))
+  have hai : Integrable (fun z : E => ⟪a, c • z⟫) (stdGaussian E) := by
+    simp_rw [real_inner_smul_right]
+    exact ((IsGaussian.memLp_dual (stdGaussian E) (innerSL ℝ a) 1
+      (by norm_num)).integrable le_rfl).const_mul c
+  have ha0 : ∫ z : E, ⟪a, c • z⟫ ∂stdGaussian E = 0 := by
+    have h0 : ∫ z : E, ⟪a, z⟫ ∂stdGaussian E = 0 := integral_strongDual_stdGaussian (innerSL ℝ a)
+    simp_rw [real_inner_smul_right]
+    rw [integral_const_mul, h0, mul_zero]
+  have hYi : Integrable Y (stdGaussian E) := hUi.add hai
+  have hexpi : Integrable (fun z : E => Real.exp (Y z)) (stdGaussian E) := by
+    have h1 := integrable_exp_mul_gaussianReal (μ := 0) (v := ‖c • a‖₊ ^ 2) 1
+    have hmap : (stdGaussian E).map (innerSL ℝ (c • a)) = gaussianReal 0 (‖c • a‖₊ ^ 2) := by
+      have hm := IsGaussian.map_eq_gaussianReal (μ := stdGaussian E) (innerSL ℝ (c • a))
+      rw [integral_strongDual_stdGaussian, variance_dual_stdGaussian, innerSL_apply_norm] at hm
+      have en : (‖c • a‖ ^ 2).toNNReal = ‖c • a‖₊ ^ 2 := by
+        ext; simp [Real.coe_toNNReal _ (sq_nonneg ‖c • a‖)]
+      rwa [en] at hm
+    rw [← hmap] at h1
+    have hdom := (integrable_map_measure (by fun_prop) (by fun_prop)).1 h1
+    have hYm : Measurable Y := (hU.comp (measurable_id.const_smul c)).add
+      (by fun_prop : Measurable fun z : E => ⟪a, c • z⟫)
+    refine hdom.mono' hYm.exp.aestronglyMeasurable (ae_of_all _ fun z => ?_)
+    change ‖Real.exp (U (c • z) + ⟪a, c • z⟫)‖ ≤ Real.exp (1 * ⟪c • a, z⟫)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_exp, one_mul,
+      real_inner_smul_left, real_inner_smul_right]
+    exact add_le_of_nonpos_left (hU0 _)
+  have hJ : Real.exp (∫ z : E, U (c • z) ∂stdGaussian E) ≤
+      ∫ z : E, Real.exp (Y z) ∂stdGaussian E := by
+    have h1 := ConvexOn.map_integral_le convexOn_exp Real.continuous_exp.continuousOn isClosed_univ
+      (ae_of_all _ fun _ => Set.mem_univ _) hYi hexpi
+    have h2 : ∫ z : E, Y z ∂stdGaussian E = ∫ z : E, U (c • z) ∂stdGaussian E := by
+      dsimp only [Y]
+      rw [integral_add hUi hai, ha0, add_zero]
+    rwa [h2] at h1
+  have hZlow : (π / κ) ^ ((finrank ℝ E : ℝ) / 2) *
+      Real.exp (∫ z : E, U (c • z) ∂stdGaussian E) ≤
+        ∫ v : E, Real.exp (U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫) := by
+    rw [hZ]
+    exact mul_le_mul_of_nonneg_left hJ (Real.rpow_nonneg (by positivity) _)
+  have hpos : 0 < (π / κ) ^ ((finrank ℝ E : ℝ) / 2) *
+      Real.exp (∫ z : E, U (c • z) ∂stdGaussian E) :=
+    mul_pos (Real.rpow_pos_of_pos (by positivity) _) (Real.exp_pos _)
+  refine (inv_anti₀ hpos hZlow).trans_eq ?_
+  rw [mul_inv, ← Real.exp_neg, ← Real.inv_rpow (by positivity), inv_div]
+
+/-- **Exponential moment of a quadratically confined Gibbs measure** (combining Lemma 3.1.5 and
+the Jensen normalizer bound): if `U ≤ 0` is measurable, `κ > 0`, and `z ↦ U (z / √(2 κ))` is
+integrable under `stdGaussian E`, then
+`⟨exp (κ ‖v‖² / 2)⟩ ≤ 2 ^ (d / 2) exp (‖a‖² / (2 κ) - 𝔼 U (z / √(2 κ)))`. -/
+theorem integral_exp_half_sq_norm_tilted_le_two_rpow (hU : Measurable U) (hU0 : ∀ v, U v ≤ 0)
+    (hκ : 0 < κ) (a : E)
+    (hUi : Integrable (fun z : E => U ((Real.sqrt (2 * κ))⁻¹ • z)) (stdGaussian E)) :
+    Integrable (fun v : E => Real.exp (κ / 2 * ‖v‖ ^ 2))
+        (volume.tilted fun v => U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫) ∧
+      ∫ v, Real.exp (κ / 2 * ‖v‖ ^ 2)
+          ∂(volume.tilted fun v => U v - κ * ‖v‖ ^ 2 + ⟪a, v⟫) ≤
+        (2 : ℝ) ^ ((finrank ℝ E : ℝ) / 2) *
+          Real.exp (‖a‖ ^ 2 / (2 * κ) -
+            ∫ z : E, U ((Real.sqrt (2 * κ))⁻¹ • z) ∂stdGaussian E) := by
+  obtain ⟨hi, hle⟩ := integral_exp_half_sq_norm_tilted_le hU hU0 hκ a
+  refine ⟨hi, hle.trans ?_⟩
+  refine (mul_le_mul_of_nonneg_right
+    (inv_integral_exp_add_neg_mul_sq_norm_add_inner_le hU hU0 hκ a hUi)
+    (by positivity)).trans_eq ?_
+  have hpow : (κ / π) ^ ((finrank ℝ E : ℝ) / 2) * (2 * π / κ) ^ ((finrank ℝ E : ℝ) / 2) =
+      (2 : ℝ) ^ ((finrank ℝ E : ℝ) / 2) := by
+    rw [← Real.mul_rpow (by positivity) (by positivity)]
+    congr 1
+    field_simp
+  calc (κ / π) ^ ((finrank ℝ E : ℝ) / 2) *
+        Real.exp (-(∫ z : E, U ((Real.sqrt (2 * κ))⁻¹ • z) ∂stdGaussian E)) *
+        ((2 * π / κ) ^ ((finrank ℝ E : ℝ) / 2) * Real.exp (‖a‖ ^ 2 / (2 * κ)))
+      = ((κ / π) ^ ((finrank ℝ E : ℝ) / 2) * (2 * π / κ) ^ ((finrank ℝ E : ℝ) / 2)) *
+          (Real.exp (‖a‖ ^ 2 / (2 * κ)) *
+            Real.exp (-(∫ z : E, U ((Real.sqrt (2 * κ))⁻¹ • z) ∂stdGaussian E))) := by ring
+    _ = (2 : ℝ) ^ ((finrank ℝ E : ℝ) / 2) *
+          Real.exp (‖a‖ ^ 2 / (2 * κ) -
+            ∫ z : E, U ((Real.sqrt (2 * κ))⁻¹ • z) ∂stdGaussian E) := by
+        rw [hpow, ← Real.exp_add, sub_eq_add_neg]
 
 end NonpositivePerturbation
 

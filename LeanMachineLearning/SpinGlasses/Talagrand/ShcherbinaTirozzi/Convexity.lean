@@ -224,31 +224,12 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
   set a : E := WithLp.toLp 2 (fun i => h * g₀ i) with ha
   have hS : ∀ (k : Fin M) (σ : E), (Real.sqrt N)⁻¹ * ∑ i, g k i * σ i = ⟪v k, σ⟫ :=
     fun k σ => (inner_toLp_inv_sqrt_mul_eq _ _ _).symm
-  -- the exponent as a function of a standard Gaussian vector
-  set Y : E → ℝ := fun z => (∑ k, u ⟪v k, c • z⟫) + ⟪a, c • z⟫ with hY
-  have hZ : ∫ σ, Real.exp (-shcherbinaTirozziHamiltonian κ h u g g₀ σ) =
-      (π / κ) ^ ((N : ℝ) / 2) * ∫ z, Real.exp (Y z) ∂stdGaussian E := by
-    have e : ∀ σ : E, Real.exp (-shcherbinaTirozziHamiltonian κ h u g g₀ σ) =
-        Real.exp ((∑ k, u ⟪v k, σ⟫) + ⟪a, σ⟫) * Real.exp (-κ * ‖σ‖ ^ 2) := fun σ => by
-      rw [neg_shcherbinaTirozziHamiltonian_eq, ← Real.exp_add]
-      simp only [hS]
-      rw [← ha]
-      congr 1
-      ring
-    simp_rw [e]
-    rw [integral_mul_exp_neg_mul_sq_norm hκ
-      (fun σ : E => Real.exp ((∑ k, u ⟪v k, σ⟫) + ⟪a, σ⟫)), finrank_euclideanSpace_fin]
+  set U : E → ℝ := fun σ => ∑ k, u ⟪v k, σ⟫ with hU
+  have hUm : Measurable U :=
+    Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop : Measurable fun σ : E => ⟪v k, σ⟫)
+  have hU0 : ∀ σ, U σ ≤ 0 := fun σ => Finset.sum_nonpos fun k _ => hu0 _
   have hlin : ∀ b : E, Integrable (fun z => ⟪b, z⟫) (stdGaussian E) := fun b =>
     (IsGaussian.memLp_dual (stdGaussian E) (innerSL ℝ b) 1 (by norm_num)).integrable le_rfl
-  have hlin0 : ∫ z, ⟪a, c • z⟫ ∂stdGaussian E = 0 := by
-    have h0 : ∫ z, ⟪a, z⟫ ∂stdGaussian E = 0 := integral_strongDual_stdGaussian (innerSL ℝ a)
-    simp_rw [real_inner_smul_right]
-    rw [integral_const_mul, h0, mul_zero]
-  have hai : Integrable (fun z => ⟪a, c • z⟫) (stdGaussian E) := by
-    simp_rw [real_inner_smul_right]
-    exact (hlin a).const_mul c
-  have hum : ∀ k, Measurable fun z : E => u ⟪v k, c • z⟫ := fun k =>
-    hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)
   have hbound : ∀ (k : Fin M) (z : E), -D * (1 + c * |⟪v k, z⟫|) ≤ u ⟪v k, c • z⟫ :=
     fun k z => by
       refine le_trans (le_of_eq ?_) (hD _)
@@ -256,33 +237,15 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
   have hdomk : ∀ k, Integrable (fun z => D * (1 + c * |⟪v k, z⟫|)) (stdGaussian E) :=
     fun k => ((integrable_const 1).add ((hlin (v k)).abs.const_mul c)).const_mul D
   have hui : ∀ k, Integrable (fun z => u ⟪v k, c • z⟫) (stdGaussian E) := fun k => by
-    refine Integrable.mono' (hdomk k) (hum k).aestronglyMeasurable (ae_of_all _ fun z => ?_)
-    rw [Real.norm_eq_abs, abs_of_nonpos (hu0 _)]
-    have := hbound k z
-    linarith
-  have hYi : Integrable Y (stdGaussian E) :=
-    (integrable_finsetSum _ fun k _ => hui k).add hai
-  have hexpi : Integrable (fun z => Real.exp (Y z)) (stdGaussian E) := by
-    have hG : HasGaussianLaw (fun z : E => ⟪a, c • z⟫) (stdGaussian E) := by
-      have := (IsGaussian.hasGaussianLaw_id (μ := stdGaussian E)).map_fun
-        (innerSL ℝ (c • a))
-      refine this.congr (ae_of_all _ fun z => ?_)
-      change ⟪c • a, z⟫ = ⟪a, c • z⟫
-      rw [real_inner_smul_left, real_inner_smul_right]
-    have h1 := integrable_exp_mul_of_hasGaussianLaw hG 1
-    simp only [one_mul] at h1
-    have hYm : Measurable Y := (Finset.measurable_sum _ fun k _ => hum k).add
-      (by fun_prop : Measurable fun z : E => ⟪a, c • z⟫)
-    refine Integrable.mono' h1 (Real.measurable_exp.comp hYm).aestronglyMeasurable
+    refine Integrable.mono' (hdomk k)
+      (hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)).aestronglyMeasurable
       (ae_of_all _ fun z => ?_)
-    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_exp, hY]
-    exact add_le_of_nonpos_left (Finset.sum_nonpos fun k _ => hu0 _)
-  -- Jensen's inequality
-  have hJ : Real.exp (∫ z, Y z ∂stdGaussian E) ≤ ∫ z, Real.exp (Y z) ∂stdGaussian E :=
-    ConvexOn.map_integral_le convexOn_exp Real.continuous_exp.continuousOn isClosed_univ
-      (ae_of_all _ fun _ => Set.mem_univ _) hYi hexpi
-  have hlow : -(D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2))) ≤
-      ∫ z, Y z ∂stdGaussian E := by
+    rw [Real.norm_eq_abs, abs_of_nonpos (hu0 _)]
+    linarith [hbound k z]
+  have hUi : Integrable (fun z : E => U (c • z)) (stdGaussian E) :=
+    integrable_finsetSum _ fun k _ => hui k
+  have hlow : -(∫ z : E, U (c • z) ∂stdGaussian E) ≤
+      D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2)) := by
     have hk : ∀ k, -D * (1 + c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k => by
       have h1 := integral_mono (hdomk k).neg (hui k) fun z => by
         simpa only [Pi.neg_apply, neg_mul] using hbound k z
@@ -303,8 +266,7 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
       refine Real.le_sqrt_of_sq_le ?_
       have := sq_sum_le_card_mul_sum_sq (s := Finset.univ) (f := fun k => ‖v k‖)
       simp only [Finset.card_univ, Fintype.card_fin, hnorm, ← Finset.mul_sum] at this
-      refine this.trans_eq ?_
-      ring
+      exact this.trans_eq (by ring)
     have hsqrt : c * Real.sqrt (M / N * ∑ k, ∑ i, g k i ^ 2) ≤
         Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2) := by
       refine (mul_le_mul_of_nonneg_right hcκ (Real.sqrt_nonneg _)).trans_eq ?_
@@ -312,27 +274,24 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
       congr 1
       rw [div_mul_eq_div_div_swap]
       ring
-    rw [hY]
-    simp only
-    rw [integral_add (integrable_finsetSum _ fun k _ => hui k) hai, hlin0, add_zero,
-      integral_finsetSum _ fun k _ => hui k]
+    rw [hU, integral_finsetSum _ fun k _ => hui k, neg_le]
     refine le_trans ?_ (Finset.sum_le_sum fun k _ => hk k)
     have hsum : ∑ k : Fin M, -D * (1 + c * ‖v k‖) = -(D * (M + c * ∑ k, ‖v k‖)) := by
-      rw [← Finset.mul_sum, Finset.sum_add_distrib, ← Finset.mul_sum]
-      simp
+      rw [← Finset.mul_sum, Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ,
+        Fintype.card_fin, nsmul_eq_mul, ← Finset.mul_sum]
+      ring
     rw [hsum, neg_le_neg_iff]
     exact mul_le_mul_of_nonneg_left
       (add_le_add le_rfl ((mul_le_mul_of_nonneg_left hCS hc0.le).trans hsqrt)) hD0
-  have hZlow : (π / κ) ^ ((N : ℝ) / 2) *
-      Real.exp (-(D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2)))) ≤
-        ∫ σ, Real.exp (-shcherbinaTirozziHamiltonian κ h u g g₀ σ) := by
-    rw [hZ]
-    exact mul_le_mul_of_nonneg_left ((Real.exp_le_exp.2 hlow).trans hJ)
-      (Real.rpow_nonneg (by positivity) _)
-  have hpos : 0 < (π / κ) ^ ((N : ℝ) / 2) *
-      Real.exp (-(D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2)))) :=
-    mul_pos (Real.rpow_pos_of_pos (by positivity) _) (Real.exp_pos _)
-  refine (inv_anti₀ hpos hZlow).trans_eq ?_
-  rw [mul_inv, Real.exp_neg, inv_inv, ← Real.inv_rpow (by positivity), inv_div]
+  have heq : ∀ σ : E, -shcherbinaTirozziHamiltonian κ h u g g₀ σ =
+      U σ - κ * ‖σ‖ ^ 2 + ⟪a, σ⟫ := fun σ => by
+    rw [neg_shcherbinaTirozziHamiltonian_eq, hU, ← ha]
+    congr 2
+    exact Finset.sum_congr rfl fun k _ => congrArg u (hS k σ)
+  simp_rw [heq]
+  have hkey := inv_integral_exp_add_neg_mul_sq_norm_add_inner_le hUm hU0 hκ a hUi
+  rw [finrank_euclideanSpace_fin] at hkey
+  exact hkey.trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 hlow)
+    (Real.rpow_nonneg (by positivity) _))
 
 end SpinGlasses

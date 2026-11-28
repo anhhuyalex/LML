@@ -26,6 +26,10 @@ of the field is; Eq. (3.96) is printed with the full overlap and an error `ν (|
 ## Main declarations
 
 * `SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le`: Lemma 3.2.8.
+* `SpinGlasses.continuousOn_shcherbinaTirozziAuxCavity`: continuity of `v ↦ ν_{t,v}(f ∏ ψ_r)` on
+  `[0, 1]`.
+* `SpinGlasses.integrable_shcherbinaTirozziAuxCavity_shared`: integrability in `(d, w)` of the
+  quenched replica average, used to relate `(d, w)` to `(d_full, z)`.
 -/
 
 @[expose] public section
@@ -198,6 +202,239 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le [DecidableEq R] {κ 
         ht0 ht1 hu hD₁ d.2.1 d.2.2 hσ)
     X Y hXm hXb horth (Real.sqrt (ρ - q)) hu hu₂ hu0 hD₁ hD₂ ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hfb hv₀
   simp only [← hS, hcov] at hmain
+  exact hmain
+
+/-- **Continuity of `v ↦ ν_{t,v}(f ∏_l ψ_l(S_v^l))` on `[0, 1]`** in the `(d, w)` representation of
+`exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le`. -/
+theorem continuousOn_shcherbinaTirozziAuxCavity {κ h : ℝ} (hκ : 0 < κ) (r : ℝ≥0) {rBar : ℝ}
+    (hrr : rBar ≤ r) {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) (q ρ : ℝ) {u : ℝ → ℝ}
+    (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0) {D₁ : ℝ} (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    (ψ : R → ℝ → ℝ) (hψc : ∀ r, Continuous (ψ r)) {M₀ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    {f : (R → ℝ^(N + 1)) → ℝ} (hf : Measurable f) {C : ℝ} {m : ℕ}
+    (hfb : ∀ σ, |f σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
+    let P := (gaussianReal 0 r).prod
+      ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
+    let γ := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1
+    let S (v : ℝ) (w : Fin (N + 1) ⊕ Unit → ℝ) (p : ℝ^(N + 1) × ℝ) : ℝ :=
+      Real.sqrt v * ((Real.sqrt (N + 1))⁻¹ *
+          ((∑ i : Fin N, w (Sum.inl i.castSucc) * p.1 i.castSucc) +
+            Real.sqrt t * (w (Sum.inl (Fin.last N)) * p.1 (Fin.last N)))) +
+        Real.sqrt (1 - v) * (Real.sqrt q * w (Sum.inr ()) + Real.sqrt (ρ - q) * p.2)
+    let G (v : ℝ) (d : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)))
+        (w : Fin (N + 1) ⊕ Unit → ℝ) : Measure (ℝ^(N + 1) × ℝ) :=
+      ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted fun p =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 p.1 + u (S v w p)
+    ContinuousOn
+      (fun v => ∫ d, ∫ w, ∫ σ : R → ℝ^(N + 1) × ℝ,
+        f (fun l => (σ l).1) * ∏ l, ψ l (S v w (σ l))
+        ∂(Measure.pi fun _ : R => G v d w) ∂γ ∂P)
+      (Icc 0 1) := by
+  intro P γ S G
+  have hum : Measurable u := hu.continuous.measurable
+  have hD0 : 0 ≤ D₁ := (abs_nonneg _).trans (hD₁ 0)
+  have hrr0 : 0 ≤ (r : ℝ) - rBar := sub_nonneg.2 hrr
+  set X : ℝ^(N + 1) → Fin (N + 1) ⊕ Unit → ℝ := fun x =>
+    Sum.elim (fun i => (Real.sqrt (N + 1))⁻¹ *
+      ((if i = Fin.last N then Real.sqrt t else 1) * x i)) 0 with hX
+  set Y : Fin (N + 1) ⊕ Unit → ℝ := Sum.elim 0 fun _ => Real.sqrt q with hY
+  have hcast : ∀ i : Fin N, (i.castSucc : Fin (N + 1)) ≠ Fin.last N := fun i =>
+    (Fin.castSucc_lt_last i).ne
+  have hXdot : ∀ (x : ℝ^(N + 1)) (w : Fin (N + 1) ⊕ Unit → ℝ), X x ⬝ᵥ w =
+      (Real.sqrt (N + 1))⁻¹ * ((∑ i : Fin N, w (Sum.inl i.castSucc) * x i.castSucc) +
+        Real.sqrt t * (w (Sum.inl (Fin.last N)) * x (Fin.last N))) := fun x w => by
+    simp only [dotProduct, Fintype.sum_sum_type, hX, Sum.elim_inl, Sum.elim_inr, Pi.zero_apply,
+      zero_mul, Finset.sum_const_zero, add_zero, Fin.sum_univ_castSucc (n := N), hcast,
+      reduceIte, one_mul, mul_add, Finset.mul_sum]
+    congr 1
+    · exact Finset.sum_congr rfl fun i _ => by ring
+    · ring
+  have hYdot : ∀ w : Fin (N + 1) ⊕ Unit → ℝ, Y ⬝ᵥ w = Real.sqrt q * w (Sum.inr ()) := fun w => by
+    simp [dotProduct, Fintype.sum_sum_type, hY]
+  have hXm : ∀ k, Measurable fun x => X x k := fun k => by
+    cases k with
+    | inl i =>
+      exact (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).const_mul
+        _).const_mul _
+    | inr _ => exact measurable_const
+  have hXb : ∀ k x, |X x k| ≤ 1 * (1 + ‖x‖) ^ 1 := fun k x => by
+    rw [one_mul, pow_one]
+    cases k with
+    | inl i =>
+      have hxi : |x i| ≤ ‖x‖ := by simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le x i
+      have hsN : |(Real.sqrt (N + 1))⁻¹| ≤ 1 := by
+        rw [abs_of_nonneg (by positivity)]
+        exact inv_le_one_of_one_le₀ (Real.one_le_sqrt.2 (le_add_of_nonneg_left (Nat.cast_nonneg N)))
+      have hst : |if i = Fin.last N then Real.sqrt t else 1| ≤ 1 := by
+        split
+        · rw [abs_of_nonneg (Real.sqrt_nonneg _)]; exact Real.sqrt_le_one.2 ht1
+        · simp
+      simp only [hX, Sum.elim_inl]
+      rw [abs_mul, abs_mul]
+      refine (mul_le_of_le_one_left (by positivity) hsN).trans ?_
+      refine (mul_le_of_le_one_left (abs_nonneg _) hst).trans ?_
+      linarith
+    | inr _ =>
+      simp only [hX, Sum.elim_inr, Pi.zero_apply, abs_zero]
+      positivity
+  set B₀ : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun d =>
+    |h| * (∑ i, |d.2.2 i|) + |d.1|
+  set c₀ : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun d =>
+    |κ| + (|h| * (∑ i, |d.2.2 i|) + |d.1|) + ((r : ℝ) - rBar) / 2 +
+      ∑ k, (|u 0| + D₁ * ∑ i, |d.2.1 k i|)
+  have hB0 : ∀ d, 0 ≤ B₀ d := fun d => by
+    have : 0 ≤ ∑ i, |d.2.2 i| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    positivity
+  have hc0 : ∀ d, 0 ≤ c₀ d := fun d => by
+    have h1 : 0 ≤ ∑ i, |d.2.2 i| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have h2 : 0 ≤ ∑ k, (|u 0| + D₁ * ∑ i, |d.2.1 k i|) := Finset.sum_nonneg fun k _ =>
+      add_nonneg (abs_nonneg _) (mul_nonneg hD0 (Finset.sum_nonneg fun _ _ => abs_nonneg _))
+    exact add_nonneg (add_nonneg (add_nonneg (abs_nonneg _)
+      (add_nonneg (mul_nonneg (abs_nonneg _) h1) (abs_nonneg _))) (div_nonneg hrr0 zero_le_two)) h2
+  have hmom : ∀ deg : ℕ, Integrable (fun d => (1 + B₀ d + c₀ d) ^ deg) P := fun deg => by
+    set A : ℝ := 1 + |κ| + (2 * |h| + 2) + ((r : ℝ) - rBar) / 2 + (M * |u 0| + D₁)
+    have hm : Measurable fun d : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+        (1 + B₀ d + c₀ d) ^ deg := by
+      dsimp only [B₀, c₀]; fun_prop
+    refine integrable_of_abs_le_cavity_disorder_pow r hm (K := A ^ deg) (d := deg) fun d => ?_
+    rw [abs_of_nonneg (pow_nonneg (by linarith [hB0 d, hc0 d]) _), ← mul_pow]
+    refine pow_le_pow_left₀ (by linarith [hB0 d, hc0 d]) ?_ deg
+    exact one_add_cavity_confinement_le κ h hrr u hD0 d
+  have hE0m : Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) ×
+      ℝ^(N + 1) =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 :=
+    measurable_cavity_exponent hum t
+  have hS : ∀ (v : ℝ) (w : Fin (N + 1) ⊕ Unit → ℝ) (p : ℝ^(N + 1) × ℝ), S v w p =
+      Real.sqrt v * (X p.1 ⬝ᵥ w) +
+        Real.sqrt (1 - v) * (Y ⬝ᵥ w + Real.sqrt (ρ - q) * p.2) := fun v w p => by
+    rw [hXdot, hYdot]
+  have hmain := continuousOn_integral_integral_pi_tilted_prod_gaussianReal_sqrt
+    (volume : Measure (ℝ^(N + 1))) P hκ hB0 hmom hE0m
+    (fun d σ => by
+      simpa only [B₀] using neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 hrr ht0 ht1 hu0
+        d.2.1 d.2.2 σ)
+    (fun d σ hσ => by
+      simpa only [c₀] using le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one κ h d.1 hrr
+        ht0 ht1 hu hD₁ d.2.1 d.2.2 hσ)
+    X Y hXm hXb (Real.sqrt (ρ - q)) hu hu0 hD₁ ψ hψc hM₀ hf hfb
+  simp only [← hS] at hmain
+  exact hmain
+
+/-- **Integrability on `P.prod γ` of the quenched replica average** in `(d, w)` for `v ∈ [0, 1]`,
+used for Fubini when relating `(d, w)` to `(d_full, z)`. -/
+theorem integrable_shcherbinaTirozziAuxCavity_shared {κ h : ℝ} (hκ : 0 < κ) (r : ℝ≥0)
+    {rBar : ℝ} (hrr : rBar ≤ r) {t v : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) (hv0 : 0 ≤ v) (hv1 : v ≤ 1)
+    (q ρ : ℝ) {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0) {D₁ : ℝ}
+    (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    {G_obs : (Fin (N + 1) ⊕ Unit → ℝ) → (R → ℝ^(N + 1) × ℝ) → ℝ}
+    (hGm : Measurable fun p : (Fin (N + 1) ⊕ Unit → ℝ) × (R → ℝ^(N + 1) × ℝ) => G_obs p.1 p.2)
+    {C_G : ℝ} {m : ℕ} (hGb : ∀ w σ, |G_obs w σ| ≤ C_G * ∏ l, (1 + ‖σ l‖) ^ m) :
+    let P := (gaussianReal 0 r).prod
+      ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
+    let γ := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1
+    let S (w : Fin (N + 1) ⊕ Unit → ℝ) (p : ℝ^(N + 1) × ℝ) : ℝ :=
+      Real.sqrt v * ((Real.sqrt (N + 1))⁻¹ *
+          ((∑ i : Fin N, w (Sum.inl i.castSucc) * p.1 i.castSucc) +
+            Real.sqrt t * (w (Sum.inl (Fin.last N)) * p.1 (Fin.last N)))) +
+        Real.sqrt (1 - v) * (Real.sqrt q * w (Sum.inr ()) + Real.sqrt (ρ - q) * p.2)
+    Integrable
+      (fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) ×
+          (Fin (N + 1) ⊕ Unit → ℝ) =>
+        ∫ σ : R → ℝ^(N + 1) × ℝ, G_obs p.2 σ
+          ∂(Measure.pi fun _ : R =>
+            ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted fun q₀ =>
+              -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 q₀.1 +
+                u (S p.2 q₀)))
+      (P.prod γ) := by
+  intro P γ S
+  have hum : Measurable u := hu.continuous.measurable
+  have hD0 : 0 ≤ D₁ := (abs_nonneg _).trans (hD₁ 0)
+  have hrr0 : 0 ≤ (r : ℝ) - rBar := sub_nonneg.2 hrr
+  set X : ℝ^(N + 1) → Fin (N + 1) ⊕ Unit → ℝ := fun x =>
+    Sum.elim (fun i => (Real.sqrt (N + 1))⁻¹ *
+      ((if i = Fin.last N then Real.sqrt t else 1) * x i)) 0 with hX
+  set Y : Fin (N + 1) ⊕ Unit → ℝ := Sum.elim 0 fun _ => Real.sqrt q with hY
+  have hcast : ∀ i : Fin N, (i.castSucc : Fin (N + 1)) ≠ Fin.last N := fun i =>
+    (Fin.castSucc_lt_last i).ne
+  have hXdot : ∀ (x : ℝ^(N + 1)) (w : Fin (N + 1) ⊕ Unit → ℝ), X x ⬝ᵥ w =
+      (Real.sqrt (N + 1))⁻¹ * ((∑ i : Fin N, w (Sum.inl i.castSucc) * x i.castSucc) +
+        Real.sqrt t * (w (Sum.inl (Fin.last N)) * x (Fin.last N))) := fun x w => by
+    simp only [dotProduct, Fintype.sum_sum_type, hX, Sum.elim_inl, Sum.elim_inr, Pi.zero_apply,
+      zero_mul, Finset.sum_const_zero, add_zero, Fin.sum_univ_castSucc (n := N), hcast,
+      reduceIte, one_mul, mul_add, Finset.mul_sum]
+    congr 1
+    · exact Finset.sum_congr rfl fun i _ => by ring
+    · ring
+  have hYdot : ∀ w : Fin (N + 1) ⊕ Unit → ℝ, Y ⬝ᵥ w = Real.sqrt q * w (Sum.inr ()) := fun w => by
+    simp [dotProduct, Fintype.sum_sum_type, hY]
+  have hS : ∀ w p, S w p =
+      Real.sqrt v * (X p.1 ⬝ᵥ w) +
+        Real.sqrt (1 - v) * (Y ⬝ᵥ w + Real.sqrt (ρ - q) * p.2) := fun w p => by
+    rw [hXdot, hYdot]
+  have hXm : ∀ k, Measurable fun x => X x k := fun k => by
+    cases k with
+    | inl i =>
+      exact (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).const_mul
+        _).const_mul _
+    | inr _ => exact measurable_const
+  have hXb : ∀ k x, |X x k| ≤ 1 * (1 + ‖x‖) ^ 1 := fun k x => by
+    rw [one_mul, pow_one]
+    cases k with
+    | inl i =>
+      have hxi : |x i| ≤ ‖x‖ := by simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le x i
+      have hsN : |(Real.sqrt (N + 1))⁻¹| ≤ 1 := by
+        rw [abs_of_nonneg (by positivity)]
+        exact inv_le_one_of_one_le₀ (Real.one_le_sqrt.2 (le_add_of_nonneg_left (Nat.cast_nonneg N)))
+      have hst : |if i = Fin.last N then Real.sqrt t else 1| ≤ 1 := by
+        split
+        · rw [abs_of_nonneg (Real.sqrt_nonneg _)]; exact Real.sqrt_le_one.2 ht1
+        · simp
+      simp only [hX, Sum.elim_inl]
+      rw [abs_mul, abs_mul]
+      refine (mul_le_of_le_one_left (by positivity) hsN).trans ?_
+      refine (mul_le_of_le_one_left (abs_nonneg _) hst).trans ?_
+      linarith
+    | inr _ =>
+      simp only [hX, Sum.elim_inr, Pi.zero_apply, abs_zero]
+      positivity
+  set B₀ : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun d =>
+    |h| * (∑ i, |d.2.2 i|) + |d.1|
+  set c₀ : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun d =>
+    |κ| + (|h| * (∑ i, |d.2.2 i|) + |d.1|) + ((r : ℝ) - rBar) / 2 +
+      ∑ k, (|u 0| + D₁ * ∑ i, |d.2.1 k i|)
+  have hB0 : ∀ d, 0 ≤ B₀ d := fun d => by
+    have : 0 ≤ ∑ i, |d.2.2 i| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    positivity
+  have hc0 : ∀ d, 0 ≤ c₀ d := fun d => by
+    have h1 : 0 ≤ ∑ i, |d.2.2 i| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have h2 : 0 ≤ ∑ k, (|u 0| + D₁ * ∑ i, |d.2.1 k i|) := Finset.sum_nonneg fun k _ =>
+      add_nonneg (abs_nonneg _) (mul_nonneg hD0 (Finset.sum_nonneg fun _ _ => abs_nonneg _))
+    exact add_nonneg (add_nonneg (add_nonneg (abs_nonneg _)
+      (add_nonneg (mul_nonneg (abs_nonneg _) h1) (abs_nonneg _))) (div_nonneg hrr0 zero_le_two)) h2
+  have hmom : ∀ deg : ℕ, Integrable (fun d => (1 + B₀ d + c₀ d) ^ deg) P := fun deg => by
+    set A : ℝ := 1 + |κ| + (2 * |h| + 2) + ((r : ℝ) - rBar) / 2 + (M * |u 0| + D₁)
+    have hm : Measurable fun d : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+        (1 + B₀ d + c₀ d) ^ deg := by
+      dsimp only [B₀, c₀]; fun_prop
+    refine integrable_of_abs_le_cavity_disorder_pow r hm (K := A ^ deg) (d := deg) fun d => ?_
+    rw [abs_of_nonneg (pow_nonneg (by linarith [hB0 d, hc0 d]) _), ← mul_pow]
+    refine pow_le_pow_left₀ (by linarith [hB0 d, hc0 d]) ?_ deg
+    exact one_add_cavity_confinement_le κ h hrr u hD0 d
+  have hE0m : Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) ×
+      ℝ^(N + 1) =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 :=
+    measurable_cavity_exponent hum t
+  have hmain := integrable_prod_pi_tilted_prod_gaussianReal_sqrt (ι := R)
+    (volume : Measure (ℝ^(N + 1))) P hκ hB0 hmom hE0m
+    (fun d σ => by
+      simpa only [B₀] using neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 hrr ht0 ht1 hu0
+        d.2.1 d.2.2 σ)
+    (fun d σ hσ => by
+      simpa only [c₀] using le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one κ h d.1 hrr
+        ht0 ht1 hu hD₁ d.2.1 d.2.2 hσ)
+    X Y hXm hXb (Real.sqrt (ρ - q)) hu hu0 hD₁ hv0 hv1 hGm hGb
+  simp only [← hS] at hmain
   exact hmain
 
 end SpinGlasses
