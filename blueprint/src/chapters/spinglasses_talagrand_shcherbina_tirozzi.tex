@@ -623,7 +623,9 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 This section develops the cavity path, proves the auxiliary Gr\"onwall comparison in
 Lemma~3.2.9, and bounds the derivative of the last-spin moments in Proposition~3.2.10.
-It also proves the uniform overlap concentration in Eq.~(3.111).
+It also proves the uniform overlap concentration in Eq.~(3.111), Lemma~3.2.11 at the rate
+$K/\sqrt{N+1}$, and Proposition~3.2.12. The rate $K/N$ of Lemma~3.2.11 and Theorem~3.2.14 are not
+formalized.
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
   \lean{MeasureTheory.concaveOn_log_integral_exp}
@@ -1779,7 +1781,10 @@ $N\to\infty$ with $M/N\to\alpha$, the limit of
 It is an open problem in the book and has no Lean statement.
 \end{remark}
 
-\begin{theorem}[Lemma~3.2.11 at rate $(N+1)^{-1/2}$]\label{thm:sg-tal:st-lemma-3211}
+\begin{theorem}[Lemma~3.2.11, first rate]\label{thm:sg-tal:st-lemma-3211}
+  \lean{SpinGlasses.exists_abs_shcherbinaTirozziCavity_selfOverlap_sub_le,
+        SpinGlasses.exists_abs_shcherbinaTirozziCavity_overlap_sub_le}
+  \leanok
   \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
         thm:sg-tal:st-cavity-overlaps}
 \talsource{Lemma~3.2.11, Eq.~(3.112)}
@@ -1794,6 +1799,7 @@ There is $K$, depending only on $\kappa_0,h_0,D,R,R_{\mathrm{diff}}$, such that 
 \]
 \end{theorem}
 \begin{proof}
+  \leanok
   \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-cavity-moments, thm:sg-tal:st-last-spin-tail,
         thm:sg-tal:st-cavity-overlaps}
 Write $G_t$ for the cavity Gibbs measure, $\varepsilon=\sigma_{N+1}$, $n$ for the number of replicas, and
@@ -1838,14 +1844,17 @@ $A^2=K/(N+1)$, so that for all $s\in(0,1)$
 \]
 Now apply the mean value theorem between $t$ and $1$, using the continuity of $s\mapsto\nu_s(f)$ on $[0,1]$
 (Lemma~\ref{lem:sg-tal:st-cavity-moments}).
+Formalized in \texttt{RSAccuracy}.
 \end{proof}
 
 \begin{theorem}[Proposition~3.2.12: the replica-symmetric equations]\label{thm:sg-tal:st-rs-accuracy}
+  \lean{SpinGlasses.exists_shcherbinaTirozzi_rsEquations_accuracy}
+  \leanok
   \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
         thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
 \talsource{Proposition~3.2.12, Eq.~(3.115), combined with Proposition~3.2.4}
 Let $\kappa_0>0$ and $h_0,D$ be real. There is $K>0$, depending only on $\kappa_0,h_0,D$, with the following
-property. Take $N+1\ge4$ spins, $M\le10(N+1)$ constraints, $\kappa\ge\kappa_0$, $|h|\le h_0$, and $u\le0$
+property. Take $N+1$ spins, $M\le10(N+1)$ constraints, $\kappa\ge\kappa_0$, $|h|\le h_0$, and $u\le0$
 concave, four times differentiable with $|u^{(l)}|\le D$ for $1\le l\le4$, and $u(x)\ge-D(1+|x|)$. Let
 $\langle\cdot\rangle$ be the Gibbs average of the model, and define
 \[
@@ -1860,6 +1869,7 @@ the scale $\sqrt{\rho-q}$ (Lemma~\ref{lem:sg-tal:st-rs-parameters}) and $a=2\kap
 \]
 \end{theorem}
 \begin{proof}
+  \leanok
   \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-rs-choice, prop:sg-tal:st-last-spin-deriv,
         thm:sg-tal:st-cavity-overlaps, thm:sg-tal:st-lemma-3211, lem:sg-tal:st-cavity-moments}
 Use the cavity path with these $r,\bar r$, and write $\varepsilon=\sigma_{N+1}$.
@@ -1870,7 +1880,12 @@ on $\kappa_0,h_0,D$, such that
 0\le q\le\rho\le Q,\qquad0\le r\le10D^2,\qquad\bar r\le r,\qquad r-\bar r\le10(2D^2+D).
 \]
 
-\emph{Step 2 (the errors are increments along the path).} By
+\emph{Step 2 (the errors are increments along the path).} Let
+\[
+B=Q+\frac1{2\kappa_0}+\frac{10D^2+h_0^2}{4\kappa_0^2} .
+\]
+Since $a\ge2\kappa_0$, both errors in the statement are at most $B$. This proves the claim when $N+1<4$, where
+$\sqrt{N+1}\le2$, as soon as $K\ge2B$. Assume from now on that $N+1\ge4$. By
 Theorem~\ref{thm:sg-tal:st-rs-choice}(2), $a>0$ and
 \[
 \rho-\Bigl(\frac1a+\frac{r+h^2}{a^2}\Bigr)=\nu_1(\varepsilon^2)-\nu_0(\varepsilon^2),\qquad
@@ -1886,20 +1901,25 @@ and one further constraint, gives for $f=\varepsilon_1^2$ or $\varepsilon_1\vare
 E(t)=\nu_t\bigl((R_{1,2}-q)^2\bigr)^{1/2}+\nu_t\bigl((R_{1,1}-\rho)^2\bigr)^{1/2}+\frac1{N+1}.
 \]
 
-\emph{Step 4 (the error term).} At $t=1$ the cavity measure is the Gibbs measure of the model, so
-$\rho_1=\rho$ and $q_1=q$. For $(R_\ast,c)=(R_{1,1},\rho)$ or $(R_{1,2},q)$,
+\emph{Step 4 (the error term).} For $R_\ast=R_{1,1}$ or $R_{1,2}$ and every real $c$,
 \[
 \nu_t\bigl((R_\ast-c)^2\bigr)\le2\,\nu_t\bigl((R_\ast-\nu_t(R_\ast))^2\bigr)
-+2\,\bigl(\nu_t(R_\ast)-\nu_1(R_\ast)\bigr)^2 .
++2\,\bigl(\nu_t(R_\ast)-c\bigr)^2 .
 \]
 Theorem~\ref{thm:sg-tal:st-cavity-overlaps} with $k=1$ bounds the first term by $K/(N+1)$, and
-Theorem~\ref{thm:sg-tal:st-lemma-3211} bounds the second by $K/(N+1)$. Hence $E(t)\le K_2/\sqrt{N+1}$.
+Theorem~\ref{thm:sg-tal:st-lemma-3211} gives $|\nu_t(R_\ast)-c|\le K/\sqrt{N+1}+|\nu_1(R_\ast)-c|$. Hence
+\[
+\nu_t\bigl((R_\ast-c)^2\bigr)^{1/2}\le\frac{K'}{\sqrt{N+1}}+\sqrt2\,\bigl|\nu_1(R_\ast)-c\bigr| .
+\]
+At $t=1$ the cavity measure is the Gibbs measure of the model, so the last term vanishes for $c=\rho$,
+respectively $c=q$. Therefore $E(t)\le K_2/\sqrt{N+1}$.
 
 \emph{Step 5 (conclusion).} By Steps~3 and~4 and the continuity of $t\mapsto\nu_t(f)$ on $[0,1]$
 (Lemma~\ref{lem:sg-tal:st-cavity-moments}), the mean value theorem gives
 \[
 |\nu_1(f)-\nu_0(f)|\le\frac{K_1K_2}{\sqrt{N+1}} .
 \]
+Formalized in \texttt{RSAccuracy}.
 \end{proof}
 
 \begin{remark}[Hypotheses and differences for Lemma~3.2.11 and Proposition~3.2.12]
@@ -1908,18 +1928,15 @@ Theorem~\ref{thm:sg-tal:st-lemma-3211} bounds the second by $K/(N+1)$. Hence $E(
 \emph{The book's hypotheses} are $u\le0$ concave (3.2), $u(x)\ge-D(1+|x|)$ (3.6), $|u^{(l)}|\le D$ for
 $1\le l\le4$ (3.95), and $\kappa\ge\kappa_0$, $h\le h_0$, $M\le10N$ (3.25), with $h\ge0$.
 
-\emph{Differences.} The system has $N+1$ spins, and $h$ may have either sign. The condition $N+1\ge4$ is the
-range $k\le N/4$ of Theorem~3.1.18 at $k=1$. Theorem~\ref{thm:sg-tal:st-lemma-3211} uses only two derivatives
+\emph{Differences.} The system has $N+1$ spins, and $h$ may have either sign. The condition $N+1\ge4$ in
+Theorem~\ref{thm:sg-tal:st-lemma-3211} is the range $k\le N/4$ of Theorem~3.1.18 at $k=1$;
+Theorem~\ref{thm:sg-tal:st-rs-accuracy} holds for every $N$, the small sizes being covered by the bounds on the
+parameters. Theorem~\ref{thm:sg-tal:st-lemma-3211} uses only two derivatives
 of $u$ and allows any $r,\bar r$ within the stated bounds; the comparison is with the value at $t=1$, which does
 not depend on $r,\bar r$. Proposition~\ref{prop:sg-tal:st-last-spin-deriv} and
 Theorem~\ref{thm:sg-tal:st-rs-accuracy} use all four derivatives. No bound on $q,\rho,r,\bar r$ is assumed in
 Theorem~\ref{thm:sg-tal:st-rs-accuracy}: they are proved. The conclusion is stated directly as the accuracy of
 the equations (3.69), (3.76) and (3.77), which by Proposition~3.2.4 is the content of (3.115).
-
-\emph{Formalization status.} Lean versions of Theorem~\ref{thm:sg-tal:st-lemma-3211} and
-Theorem~\ref{thm:sg-tal:st-rs-accuracy} are written in the file \texttt{RSAccuracy}, but that file does not yet
-compile: the check fails inside the proof of Theorem~\ref{thm:sg-tal:st-rs-accuracy}. Neither theorem is
-therefore marked as formalized.
 
 \emph{Not formalized.} Lemma~3.2.11 is printed with the rate $K/N$; only the rate $K/\sqrt{N+1}$, which the
 book's proof obtains first and which suffices for Proposition~3.2.12, is proved. Theorem~3.2.14 (the rate $K/N$

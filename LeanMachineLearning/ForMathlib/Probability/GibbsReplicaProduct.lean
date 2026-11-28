@@ -1333,7 +1333,7 @@ end Bounded
 /-- Square integrability of a function of distinct replicas from a one-replica moment. -/
 theorem memLp_two_pi_comp_injective_of_poly_bound
     {α E R S : Type*} [MeasurableSpace α] [NormedAddCommGroup E] [MeasurableSpace E]
-    [BorelSpace E] [Fintype R] [Fintype S] (μ : Measure α) [IsProbabilityMeasure μ]
+    [Fintype R] [Fintype S] (μ : Measure α) [IsProbabilityMeasure μ]
     {ι : R → S} (hι : Function.Injective ι) {X : α → E} (hX : Measurable X)
     {g : (R → E) → ℝ} (hg : Measurable g) {C : ℝ} {m : ℕ}
     (hgb : ∀ x, |g x| ≤ C * ∏ l, (1 + ‖x l‖) ^ m)

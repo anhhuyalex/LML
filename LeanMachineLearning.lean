@@ -833,6 +833,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardCo
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.LastSpinTail
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSAccuracy
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSEquations
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSFreeEnergyEnvelope
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.ReplicaSymmetricBounds
