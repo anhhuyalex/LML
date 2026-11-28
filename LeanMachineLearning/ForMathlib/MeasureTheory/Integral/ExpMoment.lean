@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
+
 public import Mathlib.Analysis.SpecialFunctions.Exponential
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
@@ -161,5 +163,27 @@ theorem integral_pow_le_of_integral_exp_le {Ω : Type*} {m : MeasurableSpace Ω}
   refine mul_le_mul_of_nonneg_left ?_ (by positivity)
   have := pow_nonneg hC0 k
   linarith
+
+/-- An exponential moment of a square controls shifted even moments of its absolute value. -/
+theorem integrable_one_add_abs_pow_of_integrable_exp_sq {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} {X : Ω → ℝ} (hX : AEStronglyMeasurable X μ) {K : ℝ} (hK : 0 < K)
+    (h : Integrable (fun x => Real.exp (X x ^ 2 / K)) μ) (m : ℕ) :
+    Integrable (fun x => (1 + |X x|) ^ (2 * m)) μ := by
+  let A : ℝ := K ^ m * (m.factorial : ℝ)
+  have hA : 0 ≤ A := by dsimp [A]; positivity
+  refine (h.const_mul (2 ^ (2 * m - 1) * (1 + A))).mono'
+    ((aestronglyMeasurable_const.add hX.abs).pow _) (ae_of_all _ fun x => ?_)
+  have hpow : |X x| ^ (2 * m) ≤ A * Real.exp (X x ^ 2 / K) := by
+    have hexp := Real.pow_div_factorial_le_exp (X x ^ 2 / K) (by positivity) m
+    rw [div_pow, div_div, div_le_iff₀ (by positivity)] at hexp
+    rw [pow_mul, sq_abs]
+    simpa only [A, mul_comm] using hexp
+  rw [Real.norm_of_nonneg (by positivity)]
+  calc
+    (1 + |X x|) ^ (2 * m) ≤ 2 ^ (2 * m - 1) * (1 + |X x| ^ (2 * m)) := by
+      simpa only [one_pow] using add_pow_le zero_le_one (abs_nonneg (X x)) (2 * m)
+    _ ≤ 2 ^ (2 * m - 1) * (Real.exp (X x ^ 2 / K) + A * Real.exp (X x ^ 2 / K)) :=
+      mul_le_mul_of_nonneg_left (add_le_add (Real.one_le_exp (by positivity)) hpow) (by positivity)
+    _ = _ := by ring
 
 end MeasureTheory

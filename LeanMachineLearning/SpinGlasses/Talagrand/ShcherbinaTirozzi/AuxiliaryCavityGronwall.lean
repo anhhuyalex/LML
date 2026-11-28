@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
+
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaExpMomentTail
@@ -100,84 +102,6 @@ private lemma truncated_inner_and_norm_sq_le {N : ℕ} {t : ℝ} (ht0 : 0 ≤ t)
     · rw [Real.sq_sqrt ht0]; exact ht1
     · norm_num
   exact ⟨hDm, hinner, hnorm⟩
-
-/-- Under a one-replica probability measure `G` with `Integrable (exp (‖p.1‖² / K₁)) G` (`K₁ > 0`),
-every product of powers `∏ l, (1 + ‖(σ l).1‖) ^ m` is in `L^p` for every finite `p`, in particular
-`MemLp (fun σ => |f (fun l => (σ (some (some l))).1)|) 2` when `|f σ| ≤ C ∏ (1 + ‖σ l‖)^m`. -/
-private lemma memLp_two_of_poly_bound_and_exp_sq_norm {R_rep R_big : Type*} [Fintype R_rep]
-    [Fintype R_big] {N : ℕ} {G : Measure (ℝ^(N + 1) × ℝ)} [IsProbabilityMeasure G]
-    {K₁ : ℝ} (hK₁ : 0 < K₁)
-    (hexp : Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) G)
-    {ρ_inj : R_rep → R_big} (hρ : Function.Injective ρ_inj)
-    {f : (R_rep → ℝ^(N + 1)) → ℝ} (hf : Measurable f) {C : ℝ} {m : ℕ}
-    (hfb : ∀ σ, |f σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
-    MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ => |f (fun l => (σ (ρ_inj l)).1)|) 2
-      (Measure.pi fun _ : R_big => G) := by
-  have hC0 : 0 ≤ C := by
-    have h0 := (abs_nonneg (f 0)).trans (hfb 0)
-    have hprod : (0 : ℝ) < ∏ _l : R_rep, (1 + ‖(0 : ℝ^(N + 1))‖) ^ m := by
-      simp
-    exact nonneg_of_mul_nonneg_left h0 hprod
-  have hm_f : Measurable fun σ : R_big → ℝ^(N + 1) × ℝ => |f (fun l => (σ (ρ_inj l)).1)| :=
-    continuous_abs.measurable.comp (hf.comp (Measurable.of_eval fun l =>
-      measurable_fst.comp (measurable_pi_apply (ρ_inj l))))
-  rw [memLp_two_iff_integrable_sq hm_f.aestronglyMeasurable]
-  -- Each factor `(1 + ‖p.1‖)^(2 m)` is dominated by `C_m * exp (‖p.1‖² / K₁)`
-  have h1d : ∃ M₁ : ℝ, 0 ≤ M₁ ∧ ∀ x : ℝ^(N + 1),
-      (1 + ‖x‖) ^ (2 * m) ≤ M₁ * Real.exp (‖x‖ ^ 2 / K₁) := by
-    set k : ℕ := m
-    -- `(1 + r)^(2m) ≤ 2^(2m) * (1 + r^(2m))` and `(r² / K₁)^m ≤ m! * exp (r² / K₁)`
-    refine ⟨2 ^ (2 * m) * (1 + K₁ ^ m * (m.factorial : ℝ)), by positivity, fun x => ?_⟩
-    have hr : 0 ≤ ‖x‖ := norm_nonneg x
-    have h1 : (1 + ‖x‖) ^ (2 * m) ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := by
-      have hmax : 1 + ‖x‖ ≤ 2 * max 1 ‖x‖ := by
-        rcases le_total 1 ‖x‖ with h | h
-        · rw [max_eq_right h]; linarith
-        · rw [max_eq_left h]; linarith
-      calc (1 + ‖x‖) ^ (2 * m) ≤ (2 * max 1 ‖x‖) ^ (2 * m) :=
-            pow_le_pow_left₀ (by positivity) hmax _
-        _ = 2 ^ (2 * m) * (max 1 ‖x‖) ^ (2 * m) := mul_pow _ _ _
-        _ ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := by
-            refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-            rcases le_total 1 ‖x‖ with h | h
-            · rw [max_eq_right h]; linarith
-            · rw [max_eq_left h, one_pow]; linarith [pow_nonneg hr (2 * m)]
-    have h2 : ‖x‖ ^ (2 * m) ≤ K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁) := by
-      have hts := Real.pow_div_factorial_le_exp (‖x‖ ^ 2 / K₁) (by positivity) m
-      rw [div_pow, div_le_iff₀ (by positivity)] at hts
-      have hpow : ‖x‖ ^ (2 * m) = (‖x‖ ^ 2) ^ m := by rw [pow_mul]
-      rw [hpow]
-      have hK1 : 0 < K₁ ^ m := by positivity
-      calc (‖x‖ ^ 2) ^ m = K₁ ^ m * ((‖x‖ ^ 2) ^ m / K₁ ^ m) := by field_simp
-        _ ≤ K₁ ^ m * (Real.exp (‖x‖ ^ 2 / K₁) * (m.factorial : ℝ)) :=
-            mul_le_mul_of_nonneg_left hts hK1.le
-        _ = K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁) := by ring
-    have hexp1 : 1 ≤ Real.exp (‖x‖ ^ 2 / K₁) := Real.one_le_exp (by positivity)
-    calc (1 + ‖x‖) ^ (2 * m) ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := h1
-      _ ≤ 2 ^ (2 * m) * (Real.exp (‖x‖ ^ 2 / K₁) +
-            K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁)) :=
-          mul_le_mul_of_nonneg_left (add_le_add hexp1 h2) (by positivity)
-      _ = 2 ^ (2 * m) * (1 + K₁ ^ m * (m.factorial : ℝ)) * Real.exp (‖x‖ ^ 2 / K₁) := by ring
-  obtain ⟨M₁, hM₁, h1d⟩ := h1d
-  have hpi_exp : Integrable (fun σ : R_rep → ℝ^(N + 1) × ℝ =>
-      C ^ 2 * ∏ l : R_rep, (M₁ * Real.exp (‖(σ l).1‖ ^ 2 / K₁)))
-      (Measure.pi fun _ : R_rep => G) :=
-    (Integrable.fintype_prod (f := fun _ : R_rep => fun p : ℝ^(N + 1) × ℝ =>
-      M₁ * Real.exp (‖p.1‖ ^ 2 / K₁)) (fun _ => hexp.const_mul M₁)).const_mul (C ^ 2)
-  have hmp := measurePreserving_pi_comp_injective G hρ
-  have hdom := hmp.integrable_comp_of_integrable hpi_exp
-  refine hdom.mono' (hm_f.pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-  rw [Real.norm_of_nonneg (sq_nonneg _)]
-  have hfb' := hfb (fun l => (σ (ρ_inj l)).1)
-  have hsq : |f (fun l => (σ (ρ_inj l)).1)| ^ 2 ≤
-      (C * ∏ l : R_rep, (1 + ‖(σ (ρ_inj l)).1‖) ^ m) ^ 2 :=
-    pow_le_pow_left₀ (abs_nonneg _) hfb' 2
-  refine hsq.trans ?_
-  rw [mul_pow, ← Finset.prod_pow]
-  refine mul_le_mul_of_nonneg_left
-    (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun l _ => ?_) (sq_nonneg C)
-  rw [← pow_mul, mul_comm m 2]
-  exact h1d (σ (ρ_inj l)).1
 
 /-- Under a one-replica probability measure `G` with `Integrable (exp (‖p.1‖² / K₁)) G` (`K₁ > 0`),
 the truncated overlap deviation `|(N + 1)⁻¹ ⟪D_t (σ a).1, D_t (σ b).1⟫ - m|` is in `L^4` under
@@ -355,7 +279,7 @@ where `K > 0` depends only on `|R|`, `κ₀`, `h₀`, `D`, `Q`, `R`, `R_diff`.
 Note: only `ν_{t,v₀}(f²) ≤ A²` at the point `v₀` is needed (not the supremum over all `v`), and
 `D₂ = D` is used so the derivative bound on `u''` enters only via `D`. -/
 theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp
-    {R_rep : Type*} [Fintype R_rep] [DecidableEq R_rep]
+    {R_rep : Type*} [Fintype R_rep]
     (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R) (hR_diff : 0 ≤ R_diff) :
     ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t q ρ rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ)
       {f : (R_rep → ℝ^(N + 1)) → ℝ} {C : ℝ} {m : ℕ} {A v₀ : ℝ},
@@ -386,6 +310,7 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp
             ∂(Measure.pi fun _ : R_rep => G v d w) ∂γ ∂P) D_val v₀ ∧
         |D_val| ≤ K * ((∫ d, ∫ w, ∫ σ : R_rep → ℝ^(N + 1) × ℝ, |f (fun l => (σ l).1)|
             ∂(Measure.pi fun _ : R_rep => G v₀ d w) ∂γ ∂P) + Real.exp (-((N : ℝ) + 1)) * A) := by
+  classical
   obtain ⟨K₁, L, hK₁_pos, hL_pos, hK₁_ge₀, h3102⟩ :=
     exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp κ₀ h₀ D Q R R_diff
       hκ₀ hQ hR hR_diff
@@ -606,7 +531,10 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp
     have hF2_mem : ∀ w, MemLp (fun σ : Option (Option R_rep) → ℝ^(N + 1) × ℝ =>
         |f (fun l => (σ (some (some l))).1)|) 2
         (Measure.pi fun _ : Option (Option R_rep) => G_aux w) := fun w =>
-      memLp_two_of_poly_bound_and_exp_sq_norm hK₁_pos (hsi w) hinj_some hf hfb
+      memLp_two_pi_comp_injective_of_poly_bound _ hinj_some measurable_fst hf hfb
+        (by simpa only [abs_norm] using
+          integrable_one_add_abs_pow_of_integrable_exp_sq
+            ((measurable_norm.comp measurable_fst).aestronglyMeasurable) hK₁_pos (hsi w) _)
     have hSb' : ∫ w, ∫ σ, ({τ | K_thr ≤ X_ab τ}.indicator (fun _ => (1 : ℝ)) σ)
         ∂(Measure.pi fun _ : Option (Option R_rep) => G_aux w) ∂auxLaw[N, M, r] ≤
         (Real.exp (-((N : ℝ) + 1))) ^ 4 := by
@@ -683,7 +611,7 @@ polynomial growth with `ν_{t,s}(f²) ≤ A²` for all `s ∈ [0, 1]` (`0 ≤ A`
 `ν_{t,v}(f) ≤ K * (ν_t(f) + exp (-(N + 1)) * A)`,
 where `K > 0` depends only on `|R|`, `κ₀`, `h₀`, `D`, `Q`, `R`, `R_diff`. -/
 theorem exists_shcherbinaTirozziAuxCavity_le_add_exp
-    {R_rep : Type*} [Fintype R_rep] [DecidableEq R_rep]
+    {R_rep : Type*} [Fintype R_rep]
     (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R) (hR_diff : 0 ≤ R_diff) :
     ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t q ρ rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ)
       {f : (R_rep → ℝ^(N + 1)) → ℝ} {C : ℝ} {m : ℕ} {A v : ℝ},
@@ -715,6 +643,7 @@ theorem exists_shcherbinaTirozziAuxCavity_le_add_exp
             ∂(Measure.pi fun _ : R_rep => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
               -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ) ∂P_full) +
           Real.exp (-((N : ℝ) + 1)) * A) := by
+  classical
   obtain ⟨K₀, hK₀_pos, h3105⟩ :=
     exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp (R_rep := R_rep)
       κ₀ h₀ D Q R R_diff hκ₀ hQ hR hR_diff

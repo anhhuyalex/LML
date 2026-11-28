@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
+
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityGronwall
@@ -197,71 +199,6 @@ theorem integral_shcherbinaTirozziCavity_constraint_swap {R_rep : Type*} [Fintyp
       ∂(Measure.pi fun _ : R_rep => (volume : Measure (ℝ^(N + 1))).tilted fun x =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u (e_g d.2.1) d.2.2 x)) = _
   simp_rw [hk_eq, hH]
-
-/-- Under a one-replica probability measure `G` with `Integrable (exp (‖p.1‖² / K₁)) G` (`K₁ > 0`),
-any polynomially growing observable `g : (R_rep → ℝ^(N+1)) → ℝ` is in `L²` under `G^{⊗ R_big}`
-when pulled back along an injection `ρ_inj : R_rep → R_big`. -/
-private lemma memLp_two_of_poly_bound {R_rep R_big : Type*} [Fintype R_rep] [Fintype R_big]
-    {N : ℕ} {G : Measure (ℝ^(N + 1) × ℝ)} [IsProbabilityMeasure G] {K₁ : ℝ} (hK₁ : 0 < K₁)
-    (hexp : Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) G)
-    {ρ_inj : R_rep → R_big} (hρ : Function.Injective ρ_inj)
-    {g : (R_rep → ℝ^(N + 1)) → ℝ} (hg : Measurable g) {C : ℝ} {m : ℕ}
-    (hgb : ∀ σ, |g σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
-    MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ => |g (fun l => (σ (ρ_inj l)).1)|) 2
-      (Measure.pi fun _ : R_big => G) := by
-  have hC0 : 0 ≤ C := by
-    have h0 := (abs_nonneg (g 0)).trans (hgb 0)
-    have hprod : (0 : ℝ) < ∏ _l : R_rep, (1 + ‖(0 : ℝ^(N + 1))‖) ^ m := by simp
-    exact nonneg_of_mul_nonneg_left h0 hprod
-  have hm_g : Measurable fun σ : R_big → ℝ^(N + 1) × ℝ => |g (fun l => (σ (ρ_inj l)).1)| :=
-    continuous_abs.measurable.comp (hg.comp (Measurable.of_eval fun l =>
-      measurable_fst.comp (measurable_pi_apply (ρ_inj l))))
-  rw [memLp_two_iff_integrable_sq hm_g.aestronglyMeasurable]
-  set M₁ : ℝ := 2 ^ (2 * m) * (1 + K₁ ^ m * (m.factorial : ℝ))
-  have h1d : ∀ x : ℝ^(N + 1), (1 + ‖x‖) ^ (2 * m) ≤ M₁ * Real.exp (‖x‖ ^ 2 / K₁) := fun x => by
-    have hr : 0 ≤ ‖x‖ := norm_nonneg x
-    have h1 : (1 + ‖x‖) ^ (2 * m) ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := by
-      have hmax : 1 + ‖x‖ ≤ 2 * max 1 ‖x‖ := by
-        rcases le_total 1 ‖x‖ with h | h
-        · rw [max_eq_right h]; linarith
-        · rw [max_eq_left h]; linarith
-      calc (1 + ‖x‖) ^ (2 * m) ≤ (2 * max 1 ‖x‖) ^ (2 * m) :=
-            pow_le_pow_left₀ (by positivity) hmax _
-        _ = 2 ^ (2 * m) * (max 1 ‖x‖) ^ (2 * m) := mul_pow _ _ _
-        _ ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := by
-            refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-            rcases le_total 1 ‖x‖ with h | h
-            · rw [max_eq_right h]; linarith
-            · rw [max_eq_left h, one_pow]; linarith [pow_nonneg hr (2 * m)]
-    have h2 : ‖x‖ ^ (2 * m) ≤ K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁) := by
-      have hts := Real.pow_div_factorial_le_exp (‖x‖ ^ 2 / K₁) (by positivity) m
-      rw [div_pow, div_le_iff₀ (by positivity)] at hts
-      rw [show ‖x‖ ^ (2 * m) = (‖x‖ ^ 2) ^ m by rw [pow_mul]]
-      have hK1 : 0 < K₁ ^ m := by positivity
-      calc (‖x‖ ^ 2) ^ m = K₁ ^ m * ((‖x‖ ^ 2) ^ m / K₁ ^ m) := by field_simp
-        _ ≤ K₁ ^ m * (Real.exp (‖x‖ ^ 2 / K₁) * (m.factorial : ℝ)) :=
-            mul_le_mul_of_nonneg_left hts hK1.le
-        _ = K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁) := by ring
-    calc (1 + ‖x‖) ^ (2 * m) ≤ 2 ^ (2 * m) * (1 + ‖x‖ ^ (2 * m)) := h1
-      _ ≤ 2 ^ (2 * m) * (Real.exp (‖x‖ ^ 2 / K₁) +
-            K₁ ^ m * (m.factorial : ℝ) * Real.exp (‖x‖ ^ 2 / K₁)) :=
-          mul_le_mul_of_nonneg_left
-            (add_le_add (Real.one_le_exp (by positivity)) h2) (by positivity)
-      _ = M₁ * Real.exp (‖x‖ ^ 2 / K₁) := by dsimp only [M₁]; ring
-  have hpi_exp : Integrable (fun σ : R_rep → ℝ^(N + 1) × ℝ =>
-      C ^ 2 * ∏ l : R_rep, (M₁ * Real.exp (‖(σ l).1‖ ^ 2 / K₁)))
-      (Measure.pi fun _ : R_rep => G) :=
-    (Integrable.fintype_prod (f := fun _ : R_rep => fun p : ℝ^(N + 1) × ℝ =>
-      M₁ * Real.exp (‖p.1‖ ^ 2 / K₁)) (fun _ => hexp.const_mul M₁)).const_mul (C ^ 2)
-  have hdom := (measurePreserving_pi_comp_injective G hρ).integrable_comp_of_integrable hpi_exp
-  refine hdom.mono' (hm_g.pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-  rw [Real.norm_of_nonneg (sq_nonneg _)]
-  refine (pow_le_pow_left₀ (abs_nonneg _) (hgb (fun l => (σ (ρ_inj l)).1)) 2).trans ?_
-  rw [mul_pow, ← Finset.prod_pow]
-  refine mul_le_mul_of_nonneg_left
-    (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun l _ => ?_) (sq_nonneg C)
-  rw [← pow_mul, mul_comm m 2]
-  exact h1d (σ (ρ_inj l)).1
 
 /-- Under `G_aux w` with `Integrable (exp (‖p.1‖² / K₁)) (G_aux w)`, the full overlap deviation
 `|R_{a,b} - m|` is in `L²` under `G_aux w^{⊗ R_big}`. -/
@@ -1084,7 +1021,10 @@ theorem exists_abs_shcherbinaTirozziAuxCavity_one_sub_zero_le
         MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ => |g (fun l => (σ (some (some l))).1)|) 2
           (Measure.pi fun _ : R_big => G_aux s w) := fun w => by
       have := hprob w
-      exact memLp_two_of_poly_bound hK₁_pos (hstate.2.1 w) hinj_ss hg hgb
+      exact memLp_two_pi_comp_injective_of_poly_bound _ hinj_ss measurable_fst hg hgb
+        (by simpa only [abs_norm] using
+          integrable_one_add_abs_pow_of_integrable_exp_sq
+            ((measurable_norm.comp measurable_fst).aestronglyMeasurable) hK₁_pos (hstate.2.1 w) _)
     have hV1_2 : ∀ w : AuxDis[N, M],
         MemLp (fun σ : R_big → ℝ^(N + 1) × ℝ =>
           |((N : ℝ) + 1)⁻¹ * ⟪(σ a).1, (σ b).1⟫ - m_ab|) 2

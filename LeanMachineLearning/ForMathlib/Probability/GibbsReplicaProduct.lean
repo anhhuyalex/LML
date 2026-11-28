@@ -1340,4 +1340,28 @@ theorem integrable_replicaPairAverage_tilted_of_bound {Ω R : Type*} [Measurable
 
 end Bounded
 
+/-- Square integrability of a function of distinct replicas from a one-replica moment. -/
+theorem memLp_two_pi_comp_injective_of_poly_bound
+    {α E R S : Type*} [MeasurableSpace α] [NormedAddCommGroup E] [MeasurableSpace E]
+    [BorelSpace E] [Fintype R] [Fintype S] (μ : Measure α) [IsProbabilityMeasure μ]
+    {ι : R → S} (hι : Function.Injective ι) {X : α → E} (hX : Measurable X)
+    {g : (R → E) → ℝ} (hg : Measurable g) {C : ℝ} {m : ℕ}
+    (hgb : ∀ x, |g x| ≤ C * ∏ l, (1 + ‖x l‖) ^ m)
+    (hm : Integrable (fun a => (1 + ‖X a‖) ^ (2 * m)) μ) :
+    MemLp (fun σ : S → α => |g (fun l => X (σ (ι l)))|) 2 (Measure.pi fun _ : S => μ) := by
+  have hmeas : Measurable (fun σ : S → α => |g (fun l => X (σ (ι l)))|) :=
+    continuous_abs.measurable.comp (hg.comp (Measurable.of_eval fun l =>
+      hX.comp (measurable_pi_apply (ι l))))
+  rw [memLp_two_iff_integrable_sq hmeas.aestronglyMeasurable]
+  have hprod : Integrable (fun σ : R → α => C ^ 2 * ∏ l, (1 + ‖X (σ l)‖) ^ (2 * m))
+      (Measure.pi fun _ : R => μ) :=
+    (Integrable.fintype_prod (f := fun _ : R => fun a => (1 + ‖X a‖) ^ (2 * m))
+      (fun _ => hm)).const_mul (C ^ 2)
+  have hdom := (measurePreserving_pi_comp_injective μ hι).integrable_comp_of_integrable hprod
+  refine hdom.mono' (hmeas.pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
+  rw [Real.norm_of_nonneg (sq_nonneg _)]
+  refine (pow_le_pow_left₀ (abs_nonneg _) (hgb (fun l => X (σ (ι l)))) 2).trans_eq ?_
+  rw [mul_pow, ← Finset.prod_pow]
+  simp only [Function.comp_apply, ← pow_mul, mul_comm m 2]
+
 end MeasureTheory

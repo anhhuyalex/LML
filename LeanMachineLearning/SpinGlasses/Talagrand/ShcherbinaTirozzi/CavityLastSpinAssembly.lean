@@ -604,8 +604,7 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_mul_last_sq_le
     rw [abs_mul]
     have h1 : |deriv (deriv u) cfield[N, t, d.2.1, k, x] +
         deriv u cfield[N, t, d.2.1, k, x] ^ 2| ≤ D + D ^ 2 :=
-      (abs_add_le _ _).trans (add_le_add (hD2 _)
-        (by rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hD1 _) 2))
+      abs_deriv_deriv_add_sq_deriv_le hD1 hD2 _
     have h2 := hε2_b x; rw [one_mul] at h2
     exact mul_le_mul h1 h2 (abs_nonneg _) (by positivity)
   -- Helper: integrability over `P_full` of any polynomially bounded `R'`-replica observable

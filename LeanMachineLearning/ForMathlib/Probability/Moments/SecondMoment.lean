@@ -554,7 +554,9 @@ theorem integral_prod_inner_sub_mean_pow_le (μ : Measure E) [IsProbabilityMeasu
       ∂(μ.prod μ) ≤ 4 ^ k * (A * B) := by
   have hn : 1 ≤ 2 * k := by omega
   let p : ℝ≥0∞ := Nat.cast (2 * k)
-  have hp1 : 1 ≤ p := by exact_mod_cast hn
+  have hp1 : 1 ≤ p := by
+    dsimp only [p]
+    exact_mod_cast hn
   have hp0 : p ≠ 0 := (zero_lt_one.trans_le hp1).ne'
   have hpt : p ≠ ∞ := ENNReal.natCast_ne_top _
   have hpow : p.toReal = ((2 * k : ℕ) : ℝ) := by simp [p]
