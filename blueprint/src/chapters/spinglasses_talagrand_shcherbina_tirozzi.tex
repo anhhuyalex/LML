@@ -621,10 +621,9 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
-This section covers Section~3.2 up to Lemma~3.2.9 (Eq.~(3.106)): the analytic
-lemmas, the cavity Hamiltonian, Proposition~3.2.1, Proposition~3.2.4, Lemma~3.2.6, and the auxiliary cavity
-path $\nu_{t,v}$ with Lemmas~3.2.7--3.2.8. Lemma~3.2.9, Proposition~3.2.10, Lemma~3.2.11,
-Proposition~3.2.12 and Theorem~3.2.14 are not formalized yet.
+This section develops the cavity path, proves the auxiliary Gr\"onwall comparison in
+Lemma~3.2.9, and bounds the derivative of the last-spin moments in Proposition~3.2.10.
+It also proves the uniform overlap concentration in Eq.~(3.111).
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
   \lean{MeasureTheory.concaveOn_log_integral_exp}
@@ -1489,6 +1488,38 @@ remainder is $(N+1)^{-1}$ rather than $N^{-1}$). The parameter bounds $0\le q\le
 $r-\bar r\le R_{\mathrm{diff}}$ are explicit parameters here (discharged at the physical overlaps by
 Lemma~\ref{lem:sg-tal:st-rs-parameters}), and $-D\le u(0)$ is Eq.~(3.6) at the origin.
 \end{remark}
+
+\begin{theorem}[Overlap concentration along the cavity path]\label{thm:sg-tal:st-cavity-overlaps}
+  \lean{SpinGlasses.exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le,
+        SpinGlasses.exists_integral_shcherbinaTirozziCavity_overlap_sub_pow_le}
+  \leanok
+  \uses{thm:sg-tal:st-overlaps, lem:sg-tal:st-cavity-regular}
+\talsource{Eq.~(3.111)}
+Use the cavity Hamiltonian on $N+1$ spins with $M\le 10(N+1)$ constraints.
+Assume the bounds (3.6), (3.7), and (3.25) on the potential and model parameters.
+For fixed upper bounds on $r$ and $r-\bar r$ with $\bar r\le r$, there is a constant $K$
+such that, uniformly in $t\in[0,1]$ and for $4k\le N+1$,
+\[
+  \nu_t\bigl((R_{a,b}-\nu_t(R_{a,b}))^{2k}\bigr)
+  \le \left(\frac{Kk}{N+1}\right)^k
+  \qquad ((a,b)=(1,1)\ \text{or}\ (1,2)).
+\]
+Lean uses a Lipschitz bound on $u'$ in place of a second derivative bound.
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-overlaps, lem:sg-tal:st-cavity-regular}
+For fixed disorder, apply log-concave concentration to the truncated overlaps. Use
+the norm moment bound to control the truncation error. Bound the change in the Gibbs
+mean as a function of disorder on the set where the Gaussian norm bounds hold, and
+use moment bounds on its complement. Combine the two estimates by writing
+\[
+  R_{a,b}-\nu_t(R_{a,b})
+    = (R_{a,b}-\langle R_{a,b}\rangle_t)
+      +(\langle R_{a,b}\rangle_t-\nu_t(R_{a,b})).
+\]
+The estimates on both terms are uniform in $t$.
+\end{proof}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}

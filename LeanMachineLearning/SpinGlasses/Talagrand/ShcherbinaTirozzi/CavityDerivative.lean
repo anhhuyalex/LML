@@ -1211,9 +1211,11 @@ theorem integrable_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (hκ : 0 < �
   intro G
   obtain ⟨B, hBi, hB⟩ :=
     exists_integrable_bound_integral_pi_shcherbinaTirozziCavity hκ r hrr hu0 hu1 hD hfb
-  have hmeas := measurable_integral_pi_tilted_of_sigmaFinite (μ := volume)
-    (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar)
-      hu1.continuous.measurable t) hf
+  have hmeas : Measurable fun p : Dis =>
+      ∫ σ : R → ℝ^(N + 1), f p σ ∂(Measure.pi fun _ : R => G t p) :=
+    measurable_integral_pi_tilted_of_sigmaFinite
+      (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar)
+        hu1.continuous.measurable t) hf
   exact hBi.mono' hmeas.aestronglyMeasurable (ae_of_all _ (hB t ht))
 
 /-- **Continuity on `[0, 1]` of `t ↦ ν_t(f)`** along the cavity path (including both endpoints

@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 
 /-!
 # Integrals along measure preserving maps, and exchangeable families
@@ -55,5 +56,20 @@ theorem integral_comp_eq_of_perm_equivariant {Ω ι : Type*} [MeasurableSpace Ω
   refine (integral_comp_eq_of_measurePreserving_ae_eq (X := F j) (Y := F i) (G := G) hφ
     (ae_of_all _ fun ω => ?_) (hG.comp (hF j)).aestronglyMeasurable).symm
   rw [hφF, Equiv.swap_apply_left]
+
+/-- The integral of an almost everywhere strongly measurable function of two distinct
+replicas agrees with its integral under the product law. -/
+theorem integral_pi_pair_eq_prod_of_aestronglyMeasurable {α J : Type*}
+    [MeasurableSpace α] [Fintype J] (ν : Measure α) [IsProbabilityMeasure ν] {x y : J} (hxy : x ≠ y)
+    (φ : α → α → ℝ) (hφ : AEStronglyMeasurable (fun p : α × α => φ p.1 p.2) (ν.prod ν)) :
+    ∫ σ : J → α, φ (σ x) (σ y) ∂(Measure.pi fun _ : J => ν) =
+      ∫ p : α × α, φ p.1 p.2 ∂(ν.prod ν) := by
+  have hρ : Function.Injective (![x, y] : Fin 2 → J) := by
+    intro u v huv
+    fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hxy]
+  have hmp := (measurePreserving_piFinTwo fun _ : Fin 2 => ν).comp
+    (measurePreserving_pi_comp_injective ν hρ)
+  have h := hmp.integral_comp_of_aestronglyMeasurable hφ
+  simpa [Function.comp_def] using h
 
 end MeasureTheory

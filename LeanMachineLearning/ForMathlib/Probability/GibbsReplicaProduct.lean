@@ -950,18 +950,8 @@ replicas of an i.i.d. family is the integral against `ν ⊗ ν`. -/
 theorem integral_pi_pair_eq_prod {x y : J} (hxy : x ≠ y) (φ : α → α → ℝ)
     (hφ : Measurable fun p : α × α => φ p.1 p.2) :
     ∫ σ : J → α, φ (σ x) (σ y) ∂(Measure.pi fun _ : J => ν) =
-      ∫ p : α × α, φ p.1 p.2 ∂(ν.prod ν) := by
-  have hm : Measurable fun τ : Fin 2 → α => φ (τ 0) (τ 1) :=
-    Measurable.comp (g := fun p : α × α => φ p.1 p.2) (f := fun τ : Fin 2 → α => (τ 0, τ 1)) hφ
-      ((measurable_pi_apply 0).prodMk (measurable_pi_apply 1))
-  have hρ : Function.Injective (![x, y] : Fin 2 → J) := by
-    intro u v huv
-    fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hxy]
-  have h1 := integral_pi_comp_injective ν hρ (fun τ : Fin 2 → α => φ (τ 0) (τ 1))
-    hm.aestronglyMeasurable
-  have h2 := (measurePreserving_piFinTwo fun _ : Fin 2 => ν).integral_comp'
-    (g := fun p : α × α => φ p.1 p.2)
-  simpa using h1.trans h2
+      ∫ p : α × α, φ p.1 p.2 ∂(ν.prod ν) :=
+  integral_pi_pair_eq_prod_of_aestronglyMeasurable ν hxy φ hφ.aestronglyMeasurable
 
 /-- **Exchangeability of pairs of replicas.** A function of two distinct replicas of an i.i.d.
 family has the same average for every choice of the two replicas. -/

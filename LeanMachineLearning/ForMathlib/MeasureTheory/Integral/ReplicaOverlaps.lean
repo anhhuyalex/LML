@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
+
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductCentering
 public import Mathlib.Analysis.InnerProductSpace.PiL2
@@ -156,16 +158,23 @@ theorem integral_pi_overlap_block_inner (μ : Measure α) [IsProbabilityMeasure 
   simp only [integral_const, probReal_univ, one_smul]
 
 omit [DecidableEq R] in
-/-- Independent replicas have mean overlap equal to the square of the mean vector. -/
+/-- Independent replicas have mean overlap equal to the squared norm of their mean vector,
+assuming only integrability of the vector observable. -/
 theorem integral_pi_overlap_eq_mean_sq_inner (μ : Measure α) [IsProbabilityMeasure μ]
-    {v : α → H} (hv : MemLp v ∞ μ) {b : H} (hb : ∫ t, v t ∂μ = b) (c : ℝ) {x y : R}
+    {v : α → H} (hv : Integrable v μ) {b : H} (hb : ∫ t, v t ∂μ = b) (c : ℝ) {x y : R}
     (hxy : x ≠ y) :
     (∫ ρ, c * inner ℝ (v (ρ x)) (v (ρ y)) ∂(Measure.pi fun _ : R => μ)) =
       c * inner ℝ b b := by
-  classical
-  have hm := integral_pi_overlap_block_inner μ hv hb c 0 hxy
-    (fun _ => 1) (fun _ _ => rfl) (fun _ _ => rfl) (integrable_const 1)
-  simpa only [one_mul, sub_zero, integral_const, probReal_univ, one_smul] using hm
+  have hi : Integrable (fun p : α × α => inner ℝ (v p.1) (v p.2)) (μ.prod μ) :=
+    hv.op_fst_snd (by fun_prop) ⟨1, fun x y => by
+      simpa only [one_mul, Real.norm_eq_abs] using abs_real_inner_le_norm x y⟩ hv
+  calc
+    _ = ∫ p : α × α, c * inner ℝ (v p.1) (v p.2) ∂(μ.prod μ) :=
+      integral_pi_pair_eq_prod_of_aestronglyMeasurable μ hxy
+        (fun a b => c * inner ℝ (v a) (v b)) (hi.const_mul c).aestronglyMeasurable
+    _ = c * inner ℝ b b := by
+      rw [integral_const_mul, ← hb]
+      exact congrArg (c * ·) (integral_prod_bilin (innerSL ℝ) hv hv)
 
 omit [DecidableEq R] in
 /-- **Talagrand (1.295).** Subtracting the Gibbs mean overlap leaves the centered pair
@@ -177,7 +186,7 @@ theorem integral_pi_overlap_centered_decomp_inner (μ : Measure α) [IsProbabili
         (∫ τ, c * inner ℝ (v (τ r)) (v (τ s)) ∂(Measure.pi fun _ : R => μ)) =
       c * inner ℝ (v (ρ x) - b) (v (ρ y) - b) + c * inner ℝ (v (ρ x) - b) b +
         c * inner ℝ (v (ρ y) - b) b := by
-  rw [integral_pi_overlap_eq_mean_sq_inner μ hv hb c hrs]
+  rw [integral_pi_overlap_eq_mean_sq_inner μ (hv.integrable le_top) hb c hrs]
   have h := overlap_T_expansion_inner c (c * inner ℝ b b) (v (ρ x)) (v (ρ y)) b
   linarith
 

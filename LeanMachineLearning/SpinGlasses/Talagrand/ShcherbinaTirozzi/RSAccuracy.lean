@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
+
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityLastSpinMoments
 
@@ -959,17 +961,6 @@ private lemma sqrt_integral_integral_sub_sq_le_of_le_div {Ω α : Type*} [Measur
   exact add_le_add (Real.sqrt_le_sqrt (mul_le_mul_of_nonneg_left hvar zero_le_two))
     (mul_le_mul_of_nonneg_left hmean (Real.sqrt_nonneg _))
 
-/-- The mean inner product of independent replicas is the squared norm of their mean. -/
-private lemma integral_pi_inner_eq_norm_sq {E R : Type*} [NormedAddCommGroup E]
-    [InnerProductSpace ℝ E] [CompleteSpace E] [SecondCountableTopology E]
-    [MeasurableSpace E] [BorelSpace E] [Fintype R] (μ : Measure E) [IsProbabilityMeasure μ]
-    {a b : R} (hab : a ≠ b) (hi : Integrable (fun x : E => x) μ) :
-    ∫ p : R → E, ⟪p a, p b⟫ ∂(Measure.pi fun _ : R => μ) = ‖∫ x, x ∂μ‖ ^ 2 := by
-  calc
-    _ = ∫ p : E × E, ⟪p.1, p.2⟫ ∂(μ.prod μ) :=
-      integral_pi_pair_eq_prod μ hab (fun x y => ⟪x, y⟫) (by fun_prop)
-    _ = _ := (integral_prod_bilin (innerSL ℝ) hi hi).trans (real_inner_self_eq_norm_sq _)
-
 /-- The coordinate expansion of the squared norm of the mean spin. -/
 private lemma norm_integral_sq_eq_sum_sq {ι : Type*} [Fintype ι]
     {μ : Measure (EuclideanSpace ℝ ι)} (hi : Integrable (fun x : EuclideanSpace ℝ ι => x) μ) :
@@ -1201,12 +1192,14 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
             ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d.2)) ^ 2 := fun d => by
           have : IsProbabilityMeasure (G d.2) :=
             isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
-          simp only [hG1 d, integral_const_mul]
+          simp only [hG1 d]
           have hi := (memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.2.1 d.2.2).integrable
             one_le_two
-          exact congrArg (((N : ℝ) + 1)⁻¹ * ·)
-            ((integral_pi_inner_eq_norm_sq (G d.2) (show (0 : Fin 2) ≠ 1 by decide) hi).trans
-              (norm_integral_sq_eq_sum_sq hi))
+          calc
+            _ = ((N : ℝ) + 1)⁻¹ * ⟪∫ σ, σ ∂(G d.2), ∫ σ, σ ∂(G d.2)⟫ :=
+              integral_pi_overlap_eq_mean_sq_inner (G d.2) hi rfl _
+                (show (0 : Fin 2) ≠ 1 by decide)
+            _ = _ := by rw [real_inner_self_eq_norm_sq, norm_integral_sq_eq_sum_sq hi]
         simp_rw [hpt1]
         exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
           (fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ x, x i ∂(G d)) ^ 2)
